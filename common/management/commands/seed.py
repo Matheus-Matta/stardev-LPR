@@ -121,9 +121,9 @@ class Command(BaseCommand):
         cameras     = self._seed_cameras(tenant, gateways, count)
         registries  = self._seed_plate_registries(tenant, admin, count)
         plate_evts  = self._seed_plate_events(tenant, cameras, count)
-        access_evts = self._seed_access_events(tenant, cameras, registries, plate_evts, count)
+        access_evts = self._seed_access_events(tenant, cameras, registries, plate_evts, count, admin)
         self._seed_vehicle_presence(tenant, registries, access_evts, count)
-        self._seed_alerts(tenant, cameras, gateways, access_evts, count)
+        self._seed_alerts(tenant, cameras, gateways, access_evts, count, admin)
         self._seed_audit_logs(tenant, admin, cameras, count)
         subs = self._seed_webhook_subscriptions(tenant, count)
         self._seed_webhook_deliveries(tenant, subs, count)
@@ -228,6 +228,7 @@ class Command(BaseCommand):
                     "block_reason": "Veiculo na lista negra" if lt == "blacklist" else "",
                     "notes": f"Registro de teste #{i+1}",
                     "created_by": admin,
+                    "updated_by": admin,
                 },
             )
             result.append(obj)
@@ -258,7 +259,8 @@ class Command(BaseCommand):
     # ── access events ─────────────────────────────────────────────────────────
 
     def _seed_access_events(
-        self, tenant: Tenant, cameras: list, registries: list, plate_evts: list, count: int
+        self, tenant: Tenant, cameras: list, registries: list, plate_evts: list, count: int,
+        admin=None,
     ) -> list:
         decisions   = [d.value for d in AccessEvent.Decision]
         mv_types    = [AccessEvent.MovementType.ENTRY, AccessEvent.MovementType.EXIT,
@@ -268,6 +270,7 @@ class Command(BaseCommand):
             pl  = _pl(i)
             reg = registries[i % len(registries)]
             captured = _rnd_dt()
+            reviewed = i % 3 == 0  # 1/3 dos eventos com revisao manual
             result.append(AccessEvent.objects.create(
                 tenant=tenant,
                 camera=cameras[i % len(cameras)],
@@ -283,6 +286,8 @@ class Command(BaseCommand):
                 captured_at=captured,
                 status=AccessEvent.Status.PROCESSED,
                 processed_at=captured + timedelta(seconds=random.randint(1, 10)),
+                reviewed_by=admin if reviewed else None,
+                reviewed_at=captured + timedelta(minutes=random.randint(1, 60)) if reviewed else None,
                 raw_payload={"source": "seed"},
             ))
         self._ok("AccessEvent", count)
@@ -313,14 +318,15 @@ class Command(BaseCommand):
     # ── alerts ────────────────────────────────────────────────────────────────
 
     def _seed_alerts(
-        self, tenant: Tenant, cameras: list, gateways: list, access_evts: list, count: int
+        self, tenant: Tenant, cameras: list, gateways: list, access_evts: list, count: int,
+        admin=None,
     ) -> None:
         types      = [a.value for a in Alert.AlertType]
         severities = [s.value for s in Alert.Severity]
-        statuses   = [Alert.Status.OPEN.value, Alert.Status.RESOLVED.value]
         for i in range(count):
-            atype = types[i % len(types)]
-            pl    = _pl(i)
+            atype    = types[i % len(types)]
+            pl       = _pl(i)
+            resolved = i % 2 == 1
             Alert.objects.create(
                 alert_type=atype,
                 tenant=tenant,
@@ -329,8 +335,10 @@ class Command(BaseCommand):
                 camera=cameras[i % len(cameras)],
                 gateway=gateways[i % len(gateways)] if i % 3 == 0 else None,
                 severity=severities[i % len(severities)],
-                status=statuses[i % 2],
+                status=Alert.Status.RESOLVED.value if resolved else Alert.Status.OPEN.value,
                 message=f"[Seed] {atype} - placa {pl}",
+                resolved_by=admin if resolved else None,
+                resolved_at=_rnd_dt(1) if resolved else None,
             )
         self._ok("Alert", count)
 

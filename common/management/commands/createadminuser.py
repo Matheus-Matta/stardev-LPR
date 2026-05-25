@@ -1,13 +1,13 @@
 """
-Management command: bootstrap
+Management command: createadminuser
 
 Cria (ou atualiza, se já existir) o superusuário Django e os registros
 iniciais de Business, Tenant e UserTenantAccess a partir das variáveis
 de ambiente definidas no .env.
 
 Uso:
-    python manage.py bootstrap
-    python manage.py bootstrap --no-input   # não faz perguntas interativas
+    python manage.py createadminuser
+    python manage.py createadminuser --no-input   # não faz perguntas interativas
 
 Variáveis lidas do .env / ambiente:
     SUPERUSER_USERNAME     (padrão: "admin")
@@ -177,6 +177,6 @@ class Command(BaseCommand):
         # ── Resumo ────────────────────────────────────────────────────────
         self.stdout.write("")
         self.stdout.write(self.style.HTTP_INFO("─" * 50))
-        self.stdout.write(self.style.HTTP_INFO("Bootstrap concluído."))
+        self.stdout.write(self.style.HTTP_INFO("createadminuser concluido."))
         self.stdout.write(f"  Acesse em: /app/  (login: {username})")
         self.stdout.write(self.style.HTTP_INFO("─" * 50))

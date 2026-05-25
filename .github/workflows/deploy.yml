@@ -1,0 +1,28 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    concurrency: deploy-${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t lpr-app:${{ github.sha }} .
+      - name: Deploy placeholder
+        run: |
+          echo "Configure SSH/cloud deploy for ${{ inputs.environment }}."
+          echo "Image tag: lpr-app:${{ github.sha }}"
+          echo "Run migrations as an explicit deploy step before restarting services."

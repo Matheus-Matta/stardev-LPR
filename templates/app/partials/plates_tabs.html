@@ -1,0 +1,102 @@
+{% comment %}
+  Seção de cadastro de placas com abas (whitelist/blacklist/desconhecidas/temporárias).
+  Contexto:
+    active_list   — string slug da aba ativa
+    plates        — list[PlateRow]
+    counts        — dict {whitelist, blacklist, unknown, temporary}
+    counts_active — int total da aba ativa
+{% endcomment %}
+{% load humanize %}
+<section class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+
+  {# Abas #}
+  <div class="flex items-center justify-between px-5 pt-4 border-b border-ink-100">
+    <div class="flex items-center gap-1 -mb-px flex-wrap">
+      <a href="?list=whitelist"
+         class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if active_list == 'whitelist' or not active_list %}tab-active{% else %}tab-idle{% endif %}">
+        Whitelist
+        <span class="text-[10.5px] font-bold ml-1 bg-ok-100 text-ok-700 px-1.5 py-0.5 rounded">{{ counts.whitelist|intcomma }}</span>
+      </a>
+      <a href="?list=blacklist"
+         class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if active_list == 'blacklist' %}tab-active{% else %}tab-idle{% endif %}">
+        Blacklist
+        <span class="text-[10.5px] font-bold ml-1 bg-err-100 text-err-700 px-1.5 py-0.5 rounded">{{ counts.blacklist }}</span>
+      </a>
+      <a href="?list=unknown"
+         class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if active_list == 'unknown' %}tab-active{% else %}tab-idle{% endif %}">
+        Desconhecidas
+        <span class="text-[10.5px] font-bold ml-1 bg-warn-100 text-warn-700 px-1.5 py-0.5 rounded">{{ counts.unknown }}</span>
+      </a>
+      <a href="?list=temporary"
+         class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if active_list == 'temporary' %}tab-active{% else %}tab-idle{% endif %}">
+        Temporárias
+        <span class="text-[10.5px] font-bold ml-1 bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded">{{ counts.temporary }}</span>
+      </a>
+    </div>
+
+    <div class="hidden md:flex items-center gap-2 pb-2">
+      <a href="{% url 'lpr:plates-import' %}"
+         class="h-8 px-3 leading-8 rounded-lg border border-ink-200 text-[12px] font-semibold text-ink-600 hover:bg-ink-50">
+        Importar CSV
+      </a>
+      <a href="{% url 'lpr:plates' %}?new=1"
+         class="h-8 px-3 leading-8 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-[12px] font-semibold">
+        + Cadastrar placa
+      </a>
+    </div>
+  </div>
+
+  {# Tabela de placas #}
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Placa</th>
+          <th class="text-left font-semibold px-3 py-2.5">Responsável</th>
+          <th class="text-left font-semibold px-3 py-2.5">Veículo</th>
+          <th class="text-left font-semibold px-3 py-2.5">Validade</th>
+          <th class="text-left font-semibold px-3 py-2.5">Status</th>
+          <th class="text-left font-semibold px-3 py-2.5">Último evento</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for p in plates %}
+        <tr class="hover:bg-ink-50/60">
+          <td class="pl-5 pr-3 py-3"><span class="plate-chip plate">{{ p.plate }}</span></td>
+          <td class="px-3 py-3 text-[12.5px] text-ink-800 font-medium">{{ p.owner_label }}</td>
+          <td class="px-3 py-3 text-[12px] text-ink-600">{{ p.vehicle_label }}</td>
+          <td class="px-3 py-3 text-[12px] text-ink-600">{{ p.validity_label }}</td>
+          <td class="px-3 py-3">
+            <span class="inline-flex items-center text-[11px] font-bold uppercase tracking-wide px-1.5 py-1 rounded
+              {% if p.list_kind == 'whitelist' %}bg-ok-50 text-ok-700
+              {% elif p.list_kind == 'blacklist' %}bg-err-50 text-err-700
+              {% elif p.list_kind == 'temporary' %}bg-brand-50 text-brand-700
+              {% else %}bg-warn-50 text-warn-700{% endif %}">
+              {{ p.get_status_display }}
+            </span>
+          </td>
+          <td class="px-3 py-3 text-[12px] text-ink-600">{{ p.last_event_label }}</td>
+          <td class="pr-5 pl-3 py-3 text-right">
+            <a href="{% url 'lpr:plate-detail' p.id %}"
+               class="text-[11.5px] font-semibold h-7 px-2 leading-7 rounded-md hover:bg-ink-100 text-ink-600">
+              Editar
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="px-5 py-10 text-center text-ink-400 text-[12.5px]">
+            Nenhuma placa nesta lista.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100 text-[11.5px] text-ink-500">
+    <span>Mostrando {{ plates|length }} de {{ counts_active|intcomma }} placas</span>
+  </div>
+
+</section>

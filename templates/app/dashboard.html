@@ -1,0 +1,78 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Central LPR — Controle de Placas e Acessos{% endblock %}
+
+{% block content %}
+
+{# ── Cabeçalho da página ── #}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Painel · Operação</div>
+    <h1 class="text-[26px] md:text-[28px] font-extrabold tracking-tight text-ink-900 leading-tight">
+      Central LPR — Controle de Placas e Acessos
+    </h1>
+    <p class="text-[13px] text-ink-500 mt-1">
+      Monitoramento em tempo real de leituras, decisões de acesso e integridade da malha de câmeras e gateways.
+    </p>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <div class="hidden md:flex bg-white border border-ink-200 rounded-lg overflow-hidden text-[12px] font-semibold">
+      <a href="?range=today" class="px-3 py-2 text-ink-500 hover:bg-ink-50 {% if request.GET.range == 'today' %}bg-ink-900 text-white{% endif %}">Hoje</a>
+      <a href="?range=24h"   class="px-3 py-2 {% if not request.GET.range or request.GET.range == '24h' %}bg-ink-900 text-white{% else %}text-ink-500 hover:bg-ink-50{% endif %}">24h</a>
+      <a href="?range=7d"    class="px-3 py-2 text-ink-500 hover:bg-ink-50 {% if request.GET.range == '7d' %}bg-ink-900 text-white{% endif %}">7d</a>
+      <a href="?range=30d"   class="px-3 py-2 text-ink-500 hover:bg-ink-50 {% if request.GET.range == '30d' %}bg-ink-900 text-white{% endif %}">30d</a>
+    </div>
+    <a href="{% url 'lpr:export' %}"
+       class="flex items-center gap-2 h-9 px-3 rounded-lg bg-white border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-ink-50">
+      <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4">
+        <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Exportar
+    </a>
+    <a href="{% url 'lpr:plates' %}?new=1"
+       class="flex items-center gap-2 h-9 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[12.5px] font-semibold shadow-card">
+      <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4">
+        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Nova whitelist
+    </a>
+  </div>
+</div>
+
+{# ── KPIs ── #}
+{% include "app/partials/kpi_row.html" %}
+
+{# ── Saúde da infraestrutura ── #}
+{% include "app/partials/infra_health.html" %}
+
+{# ── Eventos recentes + Alertas críticos ── #}
+<section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+  <div class="xl:col-span-2">
+    {% include "app/partials/events_table.html" %}
+  </div>
+  {% include "app/partials/alerts_sidebar.html" %}
+</section>
+
+{# ── Câmeras + Gateways ── #}
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  {% include "app/partials/cameras_panel.html" %}
+  {% include "app/partials/gateways_panel.html" %}
+</section>
+
+{# ── Cadastro de Placas (Whitelist / Blacklist / Desconhecidas / Temporárias) ── #}
+{% include "app/partials/plates_tabs.html" %}
+
+{# ── Footer da página ── #}
+<div class="text-[11px] text-ink-400 pt-2 pb-6 flex flex-wrap items-center gap-x-3 gap-y-1">
+  <span>starLPR Platform</span>
+  <span>·</span>
+  <span>v{{ app_version }}</span>
+  <span>·</span>
+  <span>{{ environment|capfirst }}</span>
+  <span>·</span>
+  <span>Modelo OCR: <span class="plate">{{ ocr_model_version|default:"v4.12-prod-2026Q2" }}</span></span>
+</div>
+
+{% endblock %}

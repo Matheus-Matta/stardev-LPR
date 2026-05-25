@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Criar conta — starLPR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    fontFamily:{ sans:['Manrope','ui-sans-serif','system-ui'], mono:['"JetBrains Mono"','ui-monospace','monospace'] },
+    colors:{
+      ink:{50:'#f6f7f9',100:'#eceef2',200:'#dde0e6',300:'#c2c7d0',400:'#8a92a0',500:'#5d6675',600:'#414957',700:'#2d343f',800:'#1c2230',900:'#0f1422'},
+      brand:{50:'#eef4ff',100:'#dbe6ff',200:'#b7cdff',300:'#85adff',400:'#5687ff',500:'#2f63f6',600:'#1f4ee0',700:'#1a3eb8',800:'#1a3590',900:'#1a2e74'},
+      ok:{50:'#ecfdf5',100:'#d1fae5',500:'#10b981',700:'#047857'},
+      warn:{50:'#fff8eb',500:'#f59e0b',700:'#b45309'},
+      err:{50:'#fef2f2',500:'#ef4444',700:'#b91c1c'},
+    },
+    boxShadow:{card:'0 1px 2px rgba(15,20,34,.04),0 1px 1px rgba(15,20,34,.03)', pop:'0 8px 24px rgba(15,20,34,.08),0 2px 6px rgba(15,20,34,.05)'},
+  } } };
+</script>
+<style>
+  body { font-family:'Manrope', ui-sans-serif, system-ui; -webkit-font-smoothing:antialiased; background:#f6f7f9; color:#0f1422; }
+  .plate { font-family:'JetBrains Mono', ui-monospace, monospace; font-weight:700; letter-spacing:.08em; }
+  .field input, .field select { transition: border-color .15s, box-shadow .15s, background .15s; }
+  .field input:focus, .field select:focus { background:#fff; border-color:#1f4ee0; box-shadow:0 0 0 4px rgba(31,78,224,.12); outline:none; }
+  .step.done .dot { background:#10b981; color:#fff; }
+  .step.active .dot { background:#0f1422; color:#fff; }
+  .step .dot { background:#eceef2; color:#8a92a0; }
+  .step.active .label { color:#0f1422; font-weight:700; }
+  .step.done .label { color:#10b981; }
+  .progress-track { background:#eceef2; }
+  .progress-fill { background: linear-gradient(90deg,#10b981,#1f4ee0); transition: width .35s ease; }
+  /* selectable cards */
+  .opt { cursor:pointer; transition: border-color .15s, background .15s, transform .15s; }
+  .opt:hover { background:#fff; }
+  .opt.sel { border-color:#1f4ee0; background:#eef4ff; }
+  .opt.sel .opt-check { opacity:1; transform: scale(1); }
+  .opt-check { opacity:0; transform: scale(.7); transition: opacity .15s, transform .15s; }
+  /* strength meter */
+  .strength-seg { background:#eceef2; height:4px; border-radius:2px; transition: background .2s; }
+  .strength-seg.lvl1 { background:#ef4444 }
+  .strength-seg.lvl2 { background:#f59e0b }
+  .strength-seg.lvl3 { background:#2f63f6 }
+  .strength-seg.lvl4 { background:#10b981 }
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="bg-white border-b border-ink-100">
+  <div class="max-w-6xl mx-auto flex items-center justify-between px-6 h-16">
+    <a href="login.html" class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-lg bg-ink-900 text-white grid place-items-center">
+        <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5">
+          <rect x="3" y="10" width="18" height="7" rx="2" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M5 10 L7 6 H17 L19 10" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="7.5" cy="17.5" r="1.4" fill="currentColor"/>
+          <circle cx="16.5" cy="17.5" r="1.4" fill="currentColor"/>
+          <path d="M3 13 H21" stroke="#2f63f6" stroke-width="1.4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="text-[15px] font-bold tracking-tight">starLPR</div>
+        <div class="text-[11px] text-ink-400 -mt-0.5">Central de Placas e Acessos</div>
+      </div>
+    </a>
+
+    <div class="flex items-center gap-3 text-[12.5px] text-ink-500">
+      <span class="hidden sm:inline">Já tem conta?</span>
+      <a href="login.html" class="font-semibold text-ink-900 px-3 h-9 leading-9 rounded-lg border border-ink-200 hover:bg-ink-50">Entrar</a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
+
+  <div class="grid lg:grid-cols-[1fr_360px] gap-8">
+
+    <!-- FORM CARD -->
+    <section>
+      <div class="mb-6">
+        <div class="text-[12px] font-semibold text-brand-700 uppercase tracking-wider">Onboarding · 7 dias grátis</div>
+        <h1 class="mt-1 text-[28px] md:text-[32px] font-extrabold tracking-tight text-ink-900 leading-tight">Crie sua conta na plataforma starLPR</h1>
+        <p class="mt-1.5 text-[13.5px] text-ink-500">Cadastre sua empresa em poucos passos. Você poderá adicionar tenants, câmeras e operadores depois de entrar.</p>
+      </div>
+
+      <!-- Stepper -->
+      <ol id="stepper" class="grid grid-cols-3 gap-3 mb-5">
+        <li class="step done flex items-center gap-2.5">
+          <span class="dot w-7 h-7 rounded-full grid place-items-center text-[12px] font-bold">1</span>
+          <div class="leading-tight">
+            <div class="label text-[12.5px]">Empresa</div>
+            <div class="text-[10.5px] text-ink-400">Business</div>
+          </div>
+        </li>
+        <li class="step active flex items-center gap-2.5">
+          <span class="dot w-7 h-7 rounded-full grid place-items-center text-[12px] font-bold">2</span>
+          <div class="leading-tight">
+            <div class="label text-[12.5px]">Perfil de uso</div>
+            <div class="text-[10.5px] text-ink-400">Vertical e porte</div>
+          </div>
+        </li>
+        <li class="step flex items-center gap-2.5">
+          <span class="dot w-7 h-7 rounded-full grid place-items-center text-[12px] font-bold">3</span>
+          <div class="leading-tight">
+            <div class="label text-[12.5px]">Administrador</div>
+            <div class="text-[10.5px] text-ink-400">Acesso e senha</div>
+          </div>
+        </li>
+      </ol>
+
+      <!-- Progress bar -->
+      <div class="progress-track h-1.5 rounded-full overflow-hidden">
+        <div id="progressFill" class="progress-fill h-full" style="width: 33.33%"></div>
+      </div>
+
+      <!-- CARD -->
+      <div class="mt-6 bg-white border border-ink-100 rounded-2xl shadow-card p-6 md:p-8">
+
+        <!-- STEP 1 -->
+        <div data-pane="1" class="space-y-5">
+          <div>
+            <h2 class="text-[18px] font-bold text-ink-900">Dados da empresa</h2>
+            <p class="text-[12.5px] text-ink-500">Quem é o Business cliente da starLPR (B2B).</p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="field md:col-span-2">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Razão social</label>
+              <input type="text" placeholder="Ex.: Vila Real Administradora Ltda." class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400" />
+            </div>
+            <div class="field">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">CNPJ</label>
+              <input type="text" placeholder="00.000.000/0000-00" class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400 plate" />
+            </div>
+            <div class="field">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Nome fantasia</label>
+              <input type="text" placeholder="Ex.: Vila Real" class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400" />
+            </div>
+            <div class="field">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Telefone comercial</label>
+              <input type="tel" placeholder="(21) 9 9999-9999" class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400" />
+            </div>
+            <div class="field">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Cidade / UF</label>
+              <input type="text" placeholder="São Gonçalo / RJ" class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400" />
+            </div>
+            <div class="field md:col-span-2">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Subdomínio da sua área (será o endereço dos seus operadores)</label>
+              <div class="flex items-stretch bg-ink-50 border border-ink-200 rounded-lg overflow-hidden focus-within:border-brand-600 focus-within:ring-4 focus-within:ring-brand-500/20">
+                <input type="text" id="slug" placeholder="vilareal" class="flex-1 bg-transparent h-11 px-3 text-[14px] placeholder:text-ink-400 plate" />
+                <div class="px-3 grid place-items-center text-[13px] text-ink-500 bg-ink-100/60 border-l border-ink-200">.starlpr.app</div>
+              </div>
+              <div class="mt-1.5 text-[11.5px] text-ok-700 flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Disponível
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div data-pane="2" class="hidden space-y-5">
+          <div>
+            <h2 class="text-[18px] font-bold text-ink-900">Como você vai usar a plataforma?</h2>
+            <p class="text-[12.5px] text-ink-500">Vamos pré-configurar sua conta com base no seu segmento.</p>
+          </div>
+
+          <div>
+            <label class="block text-[12px] font-semibold text-ink-700 mb-2">Segmento principal</label>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2.5" id="vertical">
+              <!-- options injected -->
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[12px] font-semibold text-ink-700 mb-2">Volume estimado de leituras/mês</label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5" id="volume"></div>
+          </div>
+
+          <div>
+            <label class="block text-[12px] font-semibold text-ink-700 mb-2">Modo de captura predominante</label>
+            <div class="grid md:grid-cols-2 gap-2.5" id="capture"></div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div data-pane="3" class="hidden space-y-5">
+          <div>
+            <h2 class="text-[18px] font-bold text-ink-900">Crie o usuário administrador</h2>
+            <p class="text-[12.5px] text-ink-500">Este será o primeiro UserProfile com acesso ao painel.</p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="field">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Nome completo</label>
+              <input type="text" placeholder="Renata Moraes" class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400" />
+            </div>
+            <div class="field">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Cargo</label>
+              <input type="text" placeholder="Gerente de Portaria" class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400" />
+            </div>
+            <div class="field md:col-span-2">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">E-mail corporativo</label>
+              <input type="email" placeholder="voce@empresa.com.br" class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400" />
+            </div>
+
+            <div class="field md:col-span-2">
+              <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Senha</label>
+              <input id="newPwd" type="password" placeholder="Mínimo 12 caracteres, com letras, números e símbolos" class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 px-3 text-[14px] placeholder:text-ink-400" />
+              <div class="grid grid-cols-4 gap-1.5 mt-2" id="strength">
+                <div class="strength-seg"></div><div class="strength-seg"></div><div class="strength-seg"></div><div class="strength-seg"></div>
+              </div>
+              <div class="text-[11px] text-ink-500 mt-1.5" id="strengthLabel">Use 12+ caracteres com mix de letras, números e símbolos.</div>
+            </div>
+          </div>
+
+          <!-- legal -->
+          <div class="space-y-2 pt-2">
+            <label class="flex items-start gap-2.5 text-[12.5px] text-ink-600 cursor-pointer">
+              <input type="checkbox" class="mt-0.5 w-4 h-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
+              <span>Aceito os <a href="#" class="text-ink-900 underline font-semibold">Termos de Uso</a> e a <a href="#" class="text-ink-900 underline font-semibold">Política de Privacidade</a> da starLPR.</span>
+            </label>
+            <label class="flex items-start gap-2.5 text-[12.5px] text-ink-600 cursor-pointer">
+              <input type="checkbox" class="mt-0.5 w-4 h-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
+              <span>Reconheço que a plataforma processa imagens veiculares e dados pessoais sob a base legal de <strong>legítimo interesse / execução de contrato</strong> (LGPD art. 7º) e que minha empresa atua como <strong>controladora</strong> destes dados.</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Nav buttons -->
+        <div class="mt-7 pt-5 border-t border-ink-100 flex items-center justify-between gap-3">
+          <button id="btnPrev" class="h-11 px-4 rounded-lg border border-ink-200 text-[13px] font-semibold text-ink-700 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2" disabled>
+            <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M19 12H5M11 19L4 12l7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar
+          </button>
+          <div class="text-[11.5px] text-ink-400 hidden md:block" id="stepLabel">Passo 1 de 3</div>
+          <button id="btnNext" class="h-11 px-5 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-[13px] font-semibold flex items-center gap-2 shadow-card">
+            Continuar
+            <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <p class="mt-5 text-[11.5px] text-ink-400">
+        Já tem uma conta na sua empresa? <a href="#" class="underline text-ink-700 font-semibold">Receba um convite do administrador</a> em vez de criar uma nova.
+      </p>
+    </section>
+
+    <!-- ASIDE: summary / value-prop -->
+    <aside class="space-y-4">
+      <div class="bg-white border border-ink-100 rounded-2xl shadow-card p-5">
+        <div class="text-[11px] font-bold uppercase tracking-wider text-ok-700 bg-ok-50 inline-block px-2 py-1 rounded">7 dias grátis</div>
+        <h3 class="mt-3 text-[16px] font-bold text-ink-900 leading-snug">Tudo que você precisa para operar leitura de placas em escala.</h3>
+        <ul class="mt-4 space-y-3 text-[12.5px] text-ink-700">
+          <li class="flex items-start gap-2.5"><span class="w-5 h-5 rounded-full bg-ok-50 text-ok-700 grid place-items-center shrink-0 mt-0.5"><svg viewBox="0 0 24 24" fill="none" class="w-3 h-3"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Multi-tenant ilimitado por empresa</li>
+          <li class="flex items-start gap-2.5"><span class="w-5 h-5 rounded-full bg-ok-50 text-ok-700 grid place-items-center shrink-0 mt-0.5"><svg viewBox="0 0 24 24" fill="none" class="w-3 h-3"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span> 4 modos de captura (RTSP, HTTP Push, Edge Gateway, Manual)</li>
+          <li class="flex items-start gap-2.5"><span class="w-5 h-5 rounded-full bg-ok-50 text-ok-700 grid place-items-center shrink-0 mt-0.5"><svg viewBox="0 0 24 24" fill="none" class="w-3 h-3"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Webhooks + Auditoria + LGPD nativos</li>
+          <li class="flex items-start gap-2.5"><span class="w-5 h-5 rounded-full bg-ok-50 text-ok-700 grid place-items-center shrink-0 mt-0.5"><svg viewBox="0 0 24 24" fill="none" class="w-3 h-3"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span> SLA 99.9% · suporte em português</li>
+        </ul>
+      </div>
+
+      <div class="bg-ink-900 text-white rounded-2xl shadow-card p-5">
+        <div class="text-[11px] uppercase tracking-wider text-white/40 font-semibold">Snapshot ao vivo</div>
+        <div class="mt-3 flex items-center gap-3">
+          <div class="w-16 h-12 rounded-lg" style="background: repeating-linear-gradient(135deg,#1c2230 0 8px,#2d343f 8px 16px);"></div>
+          <div class="flex-1">
+            <div class="plate" style="display:inline-block; padding:4px 10px; border-radius:6px; background:#0f1422; color:#f6f7f9; box-shadow: inset 0 0 0 2px #0f1422, inset 0 0 0 3px #5d6675; font-size:13px;">ABC1D23</div>
+            <div class="text-[11px] text-white/50 mt-1.5">Liberado · 12 ms · conf. 98%</div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 gap-3 text-[11px]">
+          <div><div class="text-[18px] font-extrabold tabular-nums">12 ms</div><div class="text-white/40">Latência média</div></div>
+          <div><div class="text-[18px] font-extrabold tabular-nums">99.97%</div><div class="text-white/40">Uptime · 90d</div></div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-ink-100 rounded-2xl p-5">
+        <div class="text-[11px] uppercase tracking-wider text-ink-400 font-semibold">Já confiam na starLPR</div>
+        <div class="mt-3 grid grid-cols-3 gap-3 items-center">
+          <div class="h-9 rounded-md bg-ink-100"></div>
+          <div class="h-9 rounded-md bg-ink-100"></div>
+          <div class="h-9 rounded-md bg-ink-100"></div>
+          <div class="h-9 rounded-md bg-ink-100"></div>
+          <div class="h-9 rounded-md bg-ink-100"></div>
+          <div class="h-9 rounded-md bg-ink-100"></div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<footer class="border-t border-ink-100 mt-10">
+  <div class="max-w-6xl mx-auto px-6 py-5 flex flex-wrap items-center justify-between gap-3 text-[11.5px] text-ink-400">
+    <span>© 2026 starLPR Platform · CNPJ 00.000.000/0001-00</span>
+    <div class="flex items-center gap-4">
+      <a href="#" class="hover:text-ink-600">Termos</a>
+      <a href="#" class="hover:text-ink-600">Privacidade</a>
+      <a href="#" class="hover:text-ink-600">LGPD · DPO</a>
+      <a href="#" class="hover:text-ink-600">Status</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ====== Step nav ======
+  let step = 1;
+  const totalSteps = 3;
+  const panes = [...document.querySelectorAll('[data-pane]')];
+  const stepperItems = [...document.querySelectorAll('#stepper .step')];
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const fill = document.getElementById('progressFill');
+  const lbl = document.getElementById('stepLabel');
+
+  function render() {
+    panes.forEach(p => p.classList.toggle('hidden', +p.dataset.pane !== step));
+    stepperItems.forEach((el,idx)=>{
+      el.classList.toggle('active', idx+1 === step);
+      el.classList.toggle('done', idx+1 < step);
+    });
+    fill.style.width = (step/totalSteps*100) + '%';
+    btnPrev.disabled = step === 1;
+    btnNext.innerHTML = step === totalSteps
+      ? `Criar conta <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+      : `Continuar <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    lbl.textContent = `Passo ${step} de ${totalSteps}`;
+  }
+  btnPrev.addEventListener('click', ()=>{ if (step>1) step--; render(); });
+  btnNext.addEventListener('click', ()=>{
+    if (step < totalSteps) { step++; render(); }
+    else { window.location.href = 'Central LPR.html'; }
+  });
+  render();
+
+  // ====== Options ======
+  const verticals = [
+    {id:'condo',   label:'Condomínio residencial', icon:`<svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`},
+    {id:'parking', label:'Estacionamento',         icon:`<svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M10 17V8h3a2.5 2.5 0 010 5h-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`},
+    {id:'log',     label:'Centro logístico',       icon:`<svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M3 10l9-5 9 5v10H3z M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6"/></svg>`},
+    {id:'mall',    label:'Shopping / Galpão',      icon:`<svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M4 8h16l-1 12H5L4 8z M8 8V5a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.6"/></svg>`},
+    {id:'corp',    label:'Corporativo / Indústria',icon:`<svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M3 21V9l5-4 5 4v12M13 13h8v8h-8" stroke="currentColor" stroke-width="1.6"/></svg>`},
+    {id:'other',   label:'Outro',                  icon:`<svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M9 9a3 3 0 116 0c0 2-3 2-3 5M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`},
+  ];
+  const volumes = [
+    {id:'lt10',   label:'< 10k',     sub:'1-2 portarias'},
+    {id:'lt50',   label:'10k – 50k', sub:'até 5 tenants'},
+    {id:'lt200',  label:'50k – 200k', sub:'até 20 tenants'},
+    {id:'mt200',  label:'> 200k',    sub:'enterprise'},
+  ];
+  const captures = [
+    {id:'rtsp', label:'RTSP Pull',           sub:'Câmeras IP via RTSP — recomendado.'},
+    {id:'push', label:'Camera Push HTTP',    sub:'A câmera empurra eventos para a API.'},
+    {id:'edge', label:'Edge Gateway Push',   sub:'Gateway local roda OCR no edge.'},
+    {id:'man',  label:'Upload Manual',       sub:'Para fluxos pontuais ou auditoria.'},
+  ];
+
+  function renderOpts(containerId, items, multi=false, defaultId=null) {
+    const c = document.getElementById(containerId);
+    c.innerHTML = items.map(it => `
+      <label class="opt rounded-lg border border-ink-200 bg-ink-50 px-3 py-3 flex items-center gap-2.5 ${defaultId===it.id?'sel':''}">
+        <input type="${multi?'checkbox':'radio'}" name="${containerId}" value="${it.id}" class="sr-only" ${defaultId===it.id?'checked':''} />
+        ${it.icon ? `<span class="w-7 h-7 rounded-md bg-white border border-ink-200 grid place-items-center text-ink-700">${it.icon}</span>` : ''}
+        <span class="flex-1 leading-tight">
+          <span class="block text-[12.5px] font-semibold text-ink-800">${it.label}</span>
+          ${it.sub ? `<span class="block text-[11px] text-ink-500">${it.sub}</span>` : ''}
+        </span>
+        <span class="opt-check w-5 h-5 rounded-full bg-brand-600 text-white grid place-items-center">
+          <svg viewBox="0 0 24 24" fill="none" class="w-3 h-3"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </label>
+    `).join('');
+    c.querySelectorAll('.opt').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        if (!multi) c.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+        el.classList.toggle('sel');
+        const inp = el.querySelector('input');
+        if (inp) inp.checked = !inp.checked || !multi ? true : false;
+      });
+    });
+  }
+  renderOpts('vertical', verticals, false, 'condo');
+  renderOpts('volume',   volumes,   false, 'lt50');
+  renderOpts('capture',  captures,  false, 'rtsp');
+
+  // ===== Slug auto-suggest from a sample =====
+  document.getElementById('slug').addEventListener('input', (e)=>{
+    e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0, 32);
+  });
+
+  // ===== Password strength =====
+  const pwd = document.getElementById('newPwd');
+  const segs = document.querySelectorAll('#strength .strength-seg');
+  const lblP = document.getElementById('strengthLabel');
+  const labels = ['Muito fraca','Fraca','Razoável','Forte','Muito forte'];
+  pwd.addEventListener('input', ()=>{
+    const v = pwd.value;
+    let s = 0;
+    if (v.length >= 8) s++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) s++;
+    if (/\d/.test(v)) s++;
+    if (/[^A-Za-z0-9]/.test(v) && v.length >= 12) s++;
+    segs.forEach((seg,i)=>{
+      seg.classList.remove('lvl1','lvl2','lvl3','lvl4');
+      if (i < s) seg.classList.add('lvl'+s);
+    });
+    lblP.textContent = v ? `Força da senha: ${labels[s]}` : 'Use 12+ caracteres com mix de letras, números e símbolos.';
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+{% comment %}
+  Linha de câmera no painel de infraestrutura.
+  Param: cam (CameraRow de views.py)
+{% endcomment %}
+<li class="flex items-center gap-3 px-5 py-3">
+  <span class="w-2 h-2 rounded-full shrink-0
+    {% if cam.state == 'online' %}bg-ok-500
+    {% elif cam.state == 'degraded' %}bg-warn-500
+    {% elif cam.state == 'offline' %}bg-err-500
+    {% else %}bg-ink-300{% endif %}"></span>
+
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-[13px] font-semibold text-ink-800 truncate">{{ cam.name }}</span>
+      {% include "app/includes/status_badge.html" with kind=cam.state %}
+    </div>
+    <div class="text-[11px] text-ink-400 truncate">{{ cam.code }} · {{ cam.connection_mode_display }}{% if cam.model_label %} · {{ cam.model_label }}{% endif %}</div>
+  </div>
+
+  <div class="hidden sm:block text-right shrink-0">
+    <div class="text-[11px] text-ink-400">FPS</div>
+    <div class="text-[12px] font-semibold {% if cam.fps and cam.fps < 8 %}text-warn-700{% else %}text-ink-700{% endif %}">
+      {{ cam.fps|default:"—" }}
+    </div>
+  </div>
+
+  <div class="hidden sm:block text-right shrink-0 pl-3 border-l border-ink-100 ml-1">
+    <div class="text-[11px] text-ink-400">Última leitura</div>
+    <div class="text-[12px] font-semibold {% if cam.state == 'offline' %}text-err-700{% else %}text-ink-700{% endif %}">
+      {{ cam.last_read_human }}
+    </div>
+  </div>
+</li>

@@ -1,0 +1,20 @@
+{% comment %}
+  Painel de câmeras da infraestrutura.
+  Contexto: camera_list (list[CameraRow])
+{% endcomment %}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-ink-100">
+    <div>
+      <h2 class="text-[15px] font-bold text-ink-900">Câmeras</h2>
+      <div class="text-[11.5px] text-ink-400 mt-0.5">Estado por ponto de captura.</div>
+    </div>
+    <a href="{% url 'lpr:cameras' %}" class="text-[12px] text-brand-700 font-semibold hover:underline">Gerenciar →</a>
+  </div>
+  <ul class="divide-y divide-ink-100">
+    {% for cam in camera_list %}
+      {% include "app/includes/camera_row.html" with cam=cam %}
+    {% empty %}
+      <li class="px-5 py-8 text-center text-ink-400 text-[12.5px]">Nenhuma câmera cadastrada.</li>
+    {% endfor %}
+  </ul>
+</div>

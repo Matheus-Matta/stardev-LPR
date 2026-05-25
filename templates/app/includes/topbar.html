@@ -1,0 +1,109 @@
+{% comment %}
+  Topbar fixa com toggle de sidebar, breadcrumb, busca de placa, badge de ambiente,
+  notificações, perfil do usuário e live ticker de eventos.
+  Contexto esperado:
+    current_business    — objeto Business
+    current_tenant      — objeto Tenant
+    environment         — "production" | "staging" | "development"
+    notifications_unread — int
+    request.user        — usuário Django
+    ticker_events       — list[{plate, summary, camera, ago}]
+{% endcomment %}
+<header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-ink-100 shrink-0">
+
+  <div class="flex items-center gap-3 px-4 md:px-6 h-16">
+
+    {# Toggle sidebar #}
+    <button id="sbToggle" title="Recolher menu"
+            class="w-9 h-9 grid place-items-center rounded-lg hover:bg-ink-50 text-ink-500 shrink-0">
+      <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5">
+        <path d="M4 6h16M4 12h10M4 18h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    {# Breadcrumb tenant #}
+    <div class="hidden md:flex items-center gap-2 text-[12.5px] text-ink-500 min-w-0">
+      <span class="truncate">{{ current_business.name|default:"starLPR" }}</span>
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5 shrink-0"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span class="text-ink-700 font-semibold truncate">{{ current_tenant.display_name|default:"Nenhuma unidade" }}</span>
+      <a href="{% url 'lpr:tenant-switch' %}"
+         class="ml-1 shrink-0 text-[11px] px-2 py-1 rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 font-semibold">
+        Alterar
+      </a>
+    </div>
+
+    {# Busca de placa #}
+    <form method="get" action="{% url 'lpr:plate-search' %}" class="ml-auto flex items-center gap-2 w-full md:w-auto">
+      <label class="flex items-center gap-2 bg-ink-50 hover:bg-ink-100/70 border border-ink-100 rounded-lg px-3 h-9 w-full md:w-80 cursor-text">
+        <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 text-ink-400 shrink-0">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M21 21l-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <input id="plateSearch" name="q" type="text" placeholder="Buscar placa (ABC1D23)…"
+               class="bg-transparent outline-none text-[13px] flex-1 placeholder:text-ink-400 plate" />
+        <kbd class="text-[10px] text-ink-400 bg-white border border-ink-200 rounded px-1.5 py-0.5 shrink-0">⌘K</kbd>
+      </label>
+    </form>
+
+    {# Badge de ambiente #}
+    {% if environment == "production" %}
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-ok-50 text-ok-700 border border-ok-100 uppercase shrink-0">
+        <span class="w-1.5 h-1.5 rounded-full bg-ok-500"></span> Produção
+      </span>
+    {% elif environment == "staging" %}
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-warn-50 text-warn-700 border border-warn-100 uppercase shrink-0">
+        <span class="w-1.5 h-1.5 rounded-full bg-warn-500"></span> Staging
+      </span>
+    {% else %}
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-brand-50 text-brand-700 border border-brand-100 uppercase shrink-0">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span> Dev
+      </span>
+    {% endif %}
+
+    {# Notificações #}
+    <button class="relative w-9 h-9 grid place-items-center rounded-lg hover:bg-ink-50 text-ink-600 shrink-0">
+      <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5">
+        <path d="M6 8a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M10 18a2 2 0 004 0" stroke="currentColor" stroke-width="1.6"/>
+      </svg>
+      {% if notifications_unread %}
+        <span class="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-err-500 ring-2 ring-white"></span>
+      {% endif %}
+    </button>
+
+    {# Perfil do usuário #}
+    <button class="flex items-center gap-2 pl-1 pr-2 h-9 rounded-lg hover:bg-ink-50 shrink-0">
+      <span class="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white grid place-items-center text-[11px] font-bold shrink-0">
+        {{ request.user.initials|default:request.user.get_full_name|slice:":2"|upper|default:"U" }}
+      </span>
+      <span class="hidden md:block text-left leading-tight">
+        <span class="block text-[12px] font-semibold text-ink-800">{{ request.user.get_full_name|default:request.user.username }}</span>
+        <span class="block text-[10.5px] text-ink-400">{{ request.user.email }}</span>
+      </span>
+      <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 text-ink-400 shrink-0">
+        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+  </div>
+
+  {# Live ticker de eventos #}
+  <div class="border-t border-ink-100 bg-ink-50/60">
+    <div class="px-4 md:px-6 h-9 flex items-center gap-3 text-[12px] text-ink-500 overflow-hidden">
+      <span class="flex items-center gap-1.5 text-ok-700 font-semibold shrink-0">
+        <span class="w-1.5 h-1.5 rounded-full bg-ok-500 pulse-dot"></span>
+        AO VIVO
+      </span>
+      <div class="ticker-fade overflow-hidden flex-1">
+        <div id="ticker" class="whitespace-nowrap flex gap-6 text-[12px]">
+          {% for ev in ticker_events %}
+            <span><span class="plate">{{ ev.plate }}</span> · {{ ev.summary }} · {{ ev.camera }} · {{ ev.ago }}</span>
+          {% empty %}
+            <span><span class="plate">—</span> · Aguardando eventos · Sistema operacional</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>

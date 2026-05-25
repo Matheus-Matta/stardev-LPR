@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="15">
+  <title>Eventos LPR</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+      --bg: #f4f6f8;
+      --ink: #17202a;
+      --muted: #5d6d7e;
+      --line: #d5dce3;
+      --allowed: #1e8449;
+      --blocked: #b03a2e;
+      --unknown: #9a6a00;
+      --review: #6c3483;
+    }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    header { padding: 18px 24px; background: #ffffff; border-bottom: 1px solid var(--line); }
+    h1 { margin: 0; font-size: 22px; }
+    main { padding: 18px 24px; }
+    form { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    input, select, button { height: 36px; border: 1px solid var(--line); background: #fff; padding: 0 10px; }
+    button { cursor: pointer; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; background: #ffffff; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 14px; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+    .decision { font-weight: 700; }
+    .allowed { color: var(--allowed); }
+    .blocked { color: var(--blocked); }
+    .unknown { color: var(--unknown); }
+    .manual_review { color: var(--review); }
+    img { width: 72px; height: 44px; object-fit: cover; border: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Eventos LPR</h1>
+  </header>
+  <main>
+    <form method="get">
+      <input name="plate" placeholder="Placa" value="{{ filters.plate|default:'' }}">
+      <select name="camera">
+        <option value="">Todas as cameras</option>
+        {% for camera in cameras %}
+          <option value="{{ camera.id }}" {% if filters.camera == camera.id|stringformat:"s" %}selected{% endif %}>{{ camera.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="decision">
+        <option value="">Todas decisoes</option>
+        <option value="allowed" {% if filters.decision == "allowed" %}selected{% endif %}>Autorizada</option>
+        <option value="blocked" {% if filters.decision == "blocked" %}selected{% endif %}>Bloqueada</option>
+        <option value="unknown" {% if filters.decision == "unknown" %}selected{% endif %}>Desconhecida</option>
+        <option value="manual_review" {% if filters.decision == "manual_review" %}selected{% endif %}>Revisao</option>
+      </select>
+      <button type="submit">Filtrar</button>
+    </form>
+    <table>
+      <thead>
+        <tr>
+          <th>Imagem</th>
+          <th>Placa</th>
+          <th>Camera</th>
+          <th>Movimento</th>
+          <th>Decisao</th>
+          <th>Confianca</th>
+          <th>Captura</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+          <tr>
+            <td>{% if event.image %}<img src="{{ event.image.url }}" alt="Evento {{ event.id }}">{% endif %}</td>
+            <td>{{ event.normalized_plate|default:"-" }}</td>
+            <td>{{ event.camera.name|default:"-" }}</td>
+            <td>{{ event.movement_type }}</td>
+            <td class="decision {{ event.decision }}">{{ event.decision }}</td>
+            <td>{{ event.confidence|default:"-" }}</td>
+            <td>{{ event.captured_at }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">Nenhum evento encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

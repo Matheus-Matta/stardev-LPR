@@ -1,0 +1,9 @@
+{% extends "_base.html" %}
+{% block title %}Eventos de placas — Central LPR{% endblock %}
+{% block content %}
+<h1 class="text-[22px] font-extrabold tracking-tight text-ink-900">Eventos de placas</h1>
+<p class="text-[13px] text-ink-500">Tela cheia do stream de PlateEvent. Mesma tabela do dashboard, com filtros completos por câmera, tenant, decisão, intervalo e confiança mínima.</p>
+
+{# Reaproveita o painel de eventos do dashboard: a view passa `events` paginado e os filtros. #}
+{# Em produção, extrair o markup da tabela para `lpr/_events_table.html` e incluir aqui. #}
+{% endblock %}

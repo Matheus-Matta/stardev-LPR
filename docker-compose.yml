@@ -1,0 +1,159 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lpr_db}
+      POSTGRES_USER: ${POSTGRES_USER:-lpr_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lpr_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lpr_user} -d ${POSTGRES_DB:-lpr_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    env_file: .env
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker-ocr:
+    build: .
+    env_file: .env
+    command: >
+      celery -A config worker -Q ocr
+      -c ${CELERY_OCR_CONCURRENCY:-2}
+      --loglevel=info
+      --without-gossip
+      --without-mingle
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    stop_grace_period: 2m
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-capture:
+    build: .
+    env_file: .env
+    command: >
+      celery -A config worker -Q capture
+      -c ${CELERY_CAPTURE_CONCURRENCY:-4}
+      --loglevel=info
+      --without-gossip
+      --without-mingle
+    volumes:
+      - .:/app
+    stop_grace_period: 2m
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-reports:
+    build: .
+    env_file: .env
+    command: >
+      celery -A config worker -Q reports
+      -c ${CELERY_REPORT_CONCURRENCY:-1}
+      --loglevel=info
+      --without-gossip
+      --without-mingle
+    volumes:
+      - .:/app
+    stop_grace_period: 2m
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-dead:
+    build: .
+    env_file: .env
+    command: >
+      celery -A config worker -Q dead
+      -c 1
+      --loglevel=info
+      --without-gossip
+      --without-mingle
+    volumes:
+      - .:/app
+    stop_grace_period: 2m
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mediamtx:
+    build: .
+    env_file: .env
+    command: >
+      python manage.py run_media_server
+      --config /tmp/mediamtx.yml
+    ports:
+      - "${MEDIAMTX_RTSP_PORT:-8554}:8554"
+      - "${MEDIAMTX_RTMP_PORT:-1935}:1935"
+      - "${MEDIAMTX_HLS_PORT:-8888}:8888"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  capture-loop:
+    build: .
+    env_file: .env
+    environment:
+      # dentro do compose o MediaMTX é acessível pelo nome do serviço
+      MEDIAMTX_HOST: mediamtx
+    command: python manage.py run_capture_loop
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mediamtx:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:

@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Entrar — starLPR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    fontFamily: { sans:['Manrope','ui-sans-serif','system-ui'], mono:['"JetBrains Mono"','ui-monospace','monospace'] },
+    colors: {
+      ink:{50:'#f6f7f9',100:'#eceef2',200:'#dde0e6',300:'#c2c7d0',400:'#8a92a0',500:'#5d6675',600:'#414957',700:'#2d343f',800:'#1c2230',900:'#0f1422'},
+      brand:{50:'#eef4ff',100:'#dbe6ff',200:'#b7cdff',300:'#85adff',400:'#5687ff',500:'#2f63f6',600:'#1f4ee0',700:'#1a3eb8',800:'#1a3590',900:'#1a2e74'},
+      ok:{50:'#ecfdf5',500:'#10b981',700:'#047857'},
+      err:{50:'#fef2f2',100:'#fee2e2',500:'#ef4444',700:'#b91c1c'},
+    },
+    boxShadow:{card:'0 1px 2px rgba(15,20,34,.04),0 1px 1px rgba(15,20,34,.03)', pop:'0 8px 24px rgba(15,20,34,.08),0 2px 6px rgba(15,20,34,.05)'},
+  } } };
+</script>
+<style>
+  body { font-family:'Manrope', ui-sans-serif, system-ui; -webkit-font-smoothing:antialiased; background:#f6f7f9; color:#0f1422; }
+  .plate { font-family:'JetBrains Mono', ui-monospace, monospace; font-weight:700; letter-spacing:.08em; }
+  .plate-chip { display:inline-flex; align-items:center; justify-content:center; padding:6px 14px; border-radius:8px; background:#0f1422; color:#f6f7f9; box-shadow: inset 0 0 0 2px #0f1422, inset 0 0 0 3px #5d6675; font-size:18px; }
+  /* Aside gradient pattern */
+  .scan-bg {
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(47,99,246,.18), transparent 50%),
+      radial-gradient(800px 600px at -10% 100%, rgba(16,185,129,.10), transparent 55%),
+      linear-gradient(180deg, #0f1422 0%, #161c2e 100%);
+  }
+  .grid-overlay {
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse at center, #000 40%, transparent 80%);
+  }
+  /* scanning beam */
+  @keyframes scan { 0%,100% { transform: translateY(-40%); opacity:.0 } 50% { opacity:1 } 100% { transform: translateY(140%); opacity:0 } }
+  .scan-line { animation: scan 3.4s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity:.4 } }
+  .blink { animation: blink 1.4s infinite; }
+  /* form */
+  .field input { transition: border-color .15s, box-shadow .15s, background .15s; }
+  .field input:focus { background:#fff; border-color:#1f4ee0; box-shadow:0 0 0 4px rgba(31,78,224,.12); outline:none; }
+  /* live event chip */
+  .ev { animation: evin .5s ease-out; }
+  @keyframes evin { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="min-h-screen grid lg:grid-cols-2">
+
+  <!-- LEFT: brand panel -->
+  <aside class="hidden lg:flex relative scan-bg text-white overflow-hidden">
+    <div class="absolute inset-0 grid-overlay"></div>
+
+    <!-- scan beam -->
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand-400 to-transparent scan-line" style="top:0"></div>
+    </div>
+
+    <div class="relative z-10 flex flex-col w-full p-10 xl:p-14">
+      <!-- brand -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/10 ring-1 ring-white/15 backdrop-blur grid place-items-center">
+          <svg viewBox="0 0 24 24" fill="none" class="w-6 h-6 text-white">
+            <rect x="3" y="10" width="18" height="7" rx="2" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M5 10 L7 6 H17 L19 10" stroke="currentColor" stroke-width="1.6"/>
+            <circle cx="7.5" cy="17.5" r="1.4" fill="currentColor"/>
+            <circle cx="16.5" cy="17.5" r="1.4" fill="currentColor"/>
+            <path d="M3 13 H21" stroke="#5687ff" stroke-width="1.6"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-[16px] font-bold tracking-tight">starLPR</div>
+          <div class="text-[11px] text-white/50 -mt-0.5">Central de Placas e Acessos</div>
+        </div>
+      </div>
+
+      <!-- mid copy -->
+      <div class="mt-16 max-w-md">
+        <div class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-ok-500 bg-white/5 border border-white/10 rounded-full px-2.5 py-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-ok-500 blink"></span> 99.97% uptime · 26 mai 2026
+        </div>
+        <h1 class="mt-5 text-[34px] xl:text-[40px] font-extrabold leading-[1.05] tracking-tight">
+          Cada placa que cruza o seu portão, sob controle.
+        </h1>
+        <p class="mt-3 text-white/65 text-[14px] leading-relaxed">
+          Plataforma LPR/ALPR multi-tenant para condomínios, estacionamentos, galpões e centros logísticos. Leitura por câmera, decisão em milissegundos, auditoria completa.
+        </p>
+      </div>
+
+      <!-- mock card: live event -->
+      <div class="mt-10 max-w-md bg-white/[0.04] border border-white/10 rounded-2xl p-4 backdrop-blur-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-ok-500">
+            <span class="w-1.5 h-1.5 rounded-full bg-ok-500 blink"></span> Leitura ao vivo
+          </div>
+          <div class="text-[11px] text-white/40">cam-rj02-01 · Portaria Frontal</div>
+        </div>
+        <div class="mt-3 flex items-center gap-4">
+          <div class="w-20 h-14 rounded-lg" style="background: repeating-linear-gradient(135deg,#1c2230 0 8px,#2d343f 8px 16px);"></div>
+          <div class="flex-1">
+            <div id="livePlate" class="plate-chip plate ev">ABC1D23</div>
+            <div class="mt-2 text-[11px] text-white/50">
+              Honda Civic Prata · Ap. 201 · <span class="text-ok-500 font-semibold">Liberado</span>
+            </div>
+            <div class="mt-1.5 flex items-center gap-2 text-[10px] text-white/40">
+              <span>conf. 98%</span><span>·</span><span>OCR v4.12-prod-2026Q2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- stats foot -->
+      <div class="mt-auto pt-10 grid grid-cols-3 gap-4 max-w-md border-t border-white/10">
+        <div class="pt-5">
+          <div class="text-[22px] font-extrabold tabular-nums">3.4M</div>
+          <div class="text-[11px] text-white/50">Leituras/mês</div>
+        </div>
+        <div class="pt-5">
+          <div class="text-[22px] font-extrabold tabular-nums">182</div>
+          <div class="text-[11px] text-white/50">Tenants ativos</div>
+        </div>
+        <div class="pt-5">
+          <div class="text-[22px] font-extrabold tabular-nums">12 ms</div>
+          <div class="text-[11px] text-white/50">Latência média</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: form -->
+  <main class="flex flex-col">
+    <!-- topbar -->
+    <div class="flex items-center justify-between px-6 lg:px-10 h-16">
+      <div class="lg:hidden flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-ink-900 text-white grid place-items-center">
+          <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4">
+            <rect x="3" y="10" width="18" height="7" rx="2" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M5 10 L7 6 H17 L19 10" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M3 13 H21" stroke="#2f63f6" stroke-width="1.6"/>
+          </svg>
+        </div>
+        <span class="font-bold tracking-tight">starLPR</span>
+      </div>
+      <div class="ml-auto flex items-center gap-3 text-[12.5px] text-ink-500">
+        <span class="hidden sm:inline">Não tem uma conta?</span>
+        <a href="register.html" class="font-semibold text-ink-900 px-3 h-9 leading-9 rounded-lg border border-ink-200 hover:bg-ink-50">Criar conta</a>
+      </div>
+    </div>
+
+    <!-- form body -->
+    <div class="flex-1 flex items-center justify-center px-6 py-10">
+      <div class="w-full max-w-[420px]">
+        <div class="text-[12px] font-semibold text-brand-700 uppercase tracking-wider">Acesso ao painel</div>
+        <h2 class="mt-1 text-[28px] font-extrabold tracking-tight text-ink-900 leading-tight">Entrar na sua conta</h2>
+        <p class="mt-1.5 text-[13.5px] text-ink-500">Use seu e-mail corporativo. Caso utilize SSO, escolha seu provedor abaixo.</p>
+
+        <!-- SSO -->
+        <div class="mt-6 grid grid-cols-2 gap-2">
+          <button class="h-11 rounded-lg border border-ink-200 hover:bg-ink-50 flex items-center justify-center gap-2 text-[13px] font-semibold text-ink-700">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" aria-hidden="true">
+              <path fill="#4285F4" d="M22 12.2c0-.8-.1-1.4-.2-2.1H12v4h5.6c-.1.9-.8 2.4-2.4 3.4v2.7h3.9c2.3-2.1 2.9-5 2.9-8z"/>
+              <path fill="#34A853" d="M12 22c3.2 0 5.9-1 7.8-2.8l-3.9-2.7c-1 .7-2.3 1.2-3.9 1.2-3 0-5.6-2-6.5-4.8H1.5v3C3.5 19.5 7.4 22 12 22z"/>
+              <path fill="#FBBC05" d="M5.5 13c-.2-.7-.4-1.5-.4-2.3 0-.8.1-1.6.4-2.3V5.4H1.5C.6 7.2 0 9.4 0 11.7s.6 4.5 1.5 6.3l4-3z"/>
+              <path fill="#EA4335" d="M12 4.8c1.8 0 3 .8 3.7 1.4l2.7-2.7C16.9 1.7 14.7 1 12 1 7.4 1 3.5 3.5 1.5 7.4l4 3C6.4 6.8 9 4.8 12 4.8z"/>
+            </svg>
+            Google Workspace
+          </button>
+          <button class="h-11 rounded-lg border border-ink-200 hover:bg-ink-50 flex items-center justify-center gap-2 text-[13px] font-semibold text-ink-700">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" aria-hidden="true">
+              <rect x="2" y="2" width="9" height="9" fill="#F35325"/>
+              <rect x="13" y="2" width="9" height="9" fill="#81BC06"/>
+              <rect x="2" y="13" width="9" height="9" fill="#05A6F0"/>
+              <rect x="13" y="13" width="9" height="9" fill="#FFBA08"/>
+            </svg>
+            Microsoft Entra
+          </button>
+        </div>
+
+        <div class="my-5 flex items-center gap-3 text-[11px] uppercase tracking-wider text-ink-400">
+          <div class="flex-1 h-px bg-ink-200"></div>
+          ou com e-mail
+          <div class="flex-1 h-px bg-ink-200"></div>
+        </div>
+
+        <!-- form -->
+        <form id="loginForm" class="space-y-3">
+          <div class="field">
+            <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">E-mail corporativo</label>
+            <div class="relative">
+              <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 text-ink-400 absolute left-3 top-1/2 -translate-y-1/2"><path d="M4 6h16v12H4z M4 6l8 7 8-7" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              <input type="email" autocomplete="email" placeholder="voce@empresa.com.br"
+                     class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 pl-10 pr-3 text-[14px] placeholder:text-ink-400" />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-[12px] font-semibold text-ink-700">Senha</label>
+              <a href="forgot-password.html" class="text-[11.5px] font-semibold text-brand-700 hover:underline">Esqueci minha senha</a>
+            </div>
+            <div class="relative">
+              <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 text-ink-400 absolute left-3 top-1/2 -translate-y-1/2"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" stroke-width="1.6"/></svg>
+              <input id="pwd" type="password" autocomplete="current-password" placeholder="••••••••"
+                     class="w-full bg-ink-50 border border-ink-200 rounded-lg h-11 pl-10 pr-10 text-[14px] placeholder:text-ink-400" />
+              <button type="button" id="togglePwd" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 grid place-items-center rounded-md text-ink-400 hover:bg-ink-100">
+                <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-[12.5px]">
+            <label class="inline-flex items-center gap-2 select-none cursor-pointer">
+              <input type="checkbox" class="w-4 h-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
+              <span class="text-ink-600">Manter conectado nesta máquina</span>
+            </label>
+          </div>
+
+          <button type="submit" class="mt-2 w-full h-11 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-[13.5px] font-semibold flex items-center justify-center gap-2 shadow-card">
+            Entrar
+            <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </form>
+
+        <!-- env switch -->
+        <div class="mt-5 flex items-center justify-between text-[11.5px] text-ink-500">
+          <div class="flex items-center gap-2">
+            <span>Ambiente:</span>
+            <div class="inline-flex bg-ink-100 rounded-md p-0.5">
+              <button class="px-2 py-0.5 rounded-[5px] bg-white shadow-sm font-semibold text-ink-800">Produção</button>
+              <button class="px-2 py-0.5 rounded-[5px] text-ink-500 font-semibold">Staging</button>
+              <button class="px-2 py-0.5 rounded-[5px] text-ink-500 font-semibold">Homologação</button>
+            </div>
+          </div>
+          <span class="text-ink-400 hidden sm:inline">v4.12.0</span>
+        </div>
+
+        <!-- legal -->
+        <p class="mt-8 text-[11px] text-ink-400 leading-relaxed">
+          Ao continuar, você concorda com os <a href="#" class="text-ink-600 underline">Termos de Uso</a> e a <a href="#" class="text-ink-600 underline">Política de Privacidade</a>. Esta plataforma processa dados pessoais e imagens veiculares em conformidade com a LGPD.
+        </p>
+      </div>
+    </div>
+
+    <!-- foot -->
+    <div class="px-6 lg:px-10 py-4 border-t border-ink-100 flex items-center justify-between text-[11px] text-ink-400">
+      <span>© 2026 starLPR Platform</span>
+      <div class="flex items-center gap-4">
+        <a href="#" class="hover:text-ink-600">Suporte</a>
+        <a href="#" class="hover:text-ink-600">Status</a>
+        <a href="#" class="hover:text-ink-600">LGPD · DPO</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // mock live plate rotation
+  const plates = ['ABC1D23','QWR4F71','RIO2B45','XYZ9A88','FRT8H29','LBR5C19'];
+  const lp = document.getElementById('livePlate');
+  let i = 0;
+  setInterval(()=>{
+    i = (i+1) % plates.length;
+    lp.textContent = plates[i];
+    lp.classList.remove('ev'); void lp.offsetWidth; lp.classList.add('ev');
+  }, 2400);
+  // password toggle
+  const pwd = document.getElementById('pwd');
+  document.getElementById('togglePwd').addEventListener('click', ()=> pwd.type = pwd.type==='password' ? 'text' : 'password');
+  // form fake-submit
+  document.getElementById('loginForm').addEventListener('submit', (e)=>{ e.preventDefault(); window.location.href='Central LPR.html'; });
+</script>
+
+</body>
+</html>

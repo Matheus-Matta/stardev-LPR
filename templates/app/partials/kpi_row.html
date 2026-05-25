@@ -1,0 +1,13 @@
+{% comment %}
+  Linha de KPIs do dashboard.
+  Contexto: kpi (KpiData de views.py)
+{% endcomment %}
+{% load humanize %}
+<section class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+  {% include "app/includes/stat_card.html" with label="Eventos hoje"          value=kpi.events_total|intcomma icon="spark" icon_tone="brand" %}
+  {% include "app/includes/stat_card.html" with label="Entradas"              value=kpi.entries|intcomma      icon="in"    icon_tone="ok" %}
+  {% include "app/includes/stat_card.html" with label="Saídas"                value=kpi.exits|intcomma        icon="out"   icon_tone="ink" delta_tone="ink" %}
+  {% include "app/includes/stat_card.html" with label="Placas autorizadas"    value=kpi.allowed|intcomma      icon="check" icon_tone="ok" %}
+  {% include "app/includes/stat_card.html" with label="Placas bloqueadas"     value=kpi.blocked               icon="ban"   icon_tone="err" delta_tone="err" %}
+  {% include "app/includes/stat_card.html" with label="Placas desconhecidas"  value=kpi.unknown               icon="alert" icon_tone="warn" delta_tone="warn" %}
+</section>

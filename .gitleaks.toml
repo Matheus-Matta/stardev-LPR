@@ -1,0 +1,11 @@
+title = "LPR APP gitleaks config"
+
+[allowlist]
+description = "Allow documented placeholder values"
+regexes = [
+  '''dev-only-change-me''',
+  '''trocar-em-producao''',
+  '''lpr_password''',
+  '''ci-secret''',
+]
+

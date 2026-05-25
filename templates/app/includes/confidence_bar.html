@@ -1,0 +1,14 @@
+{% comment %}
+  Barra de confiança OCR.
+  Params: confidence (float 0.0–1.0), confidence_pct (int 0–100)
+{% endcomment %}
+<div class="flex items-center gap-2">
+  <div class="w-14 h-1.5 rounded-full bg-ink-100 overflow-hidden">
+    <div class="h-full {% if confidence >= 0.9 %}bg-ok-500{% elif confidence >= 0.7 %}bg-warn-500{% else %}bg-err-500{% endif %}"
+         style="width: {{ confidence_pct }}%"></div>
+  </div>
+  <span class="text-[11.5px] font-semibold tabular-nums px-1.5 py-0.5 rounded
+    {% if confidence >= 0.9 %}text-ok-700 bg-ok-50
+    {% elif confidence >= 0.7 %}text-warn-700 bg-warn-50
+    {% else %}text-err-700 bg-err-50{% endif %}">{{ confidence_pct }}%</span>
+</div>

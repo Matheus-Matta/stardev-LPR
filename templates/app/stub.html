@@ -1,0 +1,25 @@
+{% extends "app/base.html" %}
+
+{% block title %}{{ page_title }} — Central LPR{% endblock %}
+
+{% block content %}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Central LPR · {{ page_title }}</div>
+    <h1 class="text-[26px] md:text-[28px] font-extrabold tracking-tight text-ink-900 leading-tight">{{ page_title }}</h1>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl border border-ink-200 shadow-card p-12 flex flex-col items-center justify-center gap-4 text-center">
+  <div class="w-16 h-16 rounded-2xl bg-brand-50 text-brand-600 grid place-items-center">
+    <svg viewBox="0 0 24 24" fill="none" class="w-8 h-8">
+      <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+    </svg>
+  </div>
+  <div>
+    <div class="text-[17px] font-bold text-ink-900">Em desenvolvimento</div>
+    <div class="text-[13px] text-ink-500 mt-1 max-w-sm">Esta seção será implementada em breve. Volte ao <a href="{% url 'lpr:dashboard' %}" class="text-brand-700 font-semibold hover:underline">Dashboard</a> enquanto isso.</div>
+  </div>
+</div>
+{% endblock %}

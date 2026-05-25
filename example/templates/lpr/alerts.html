@@ -1,0 +1,14 @@
+{% extends "_base.html" %}
+{% block title %}Alertas — Central LPR{% endblock %}
+{% block content %}
+<h1 class="text-[22px] font-extrabold tracking-tight text-ink-900">Alertas</h1>
+<p class="text-[13px] text-ink-500 mb-4">Fila completa de Alert, com filtros por severidade, tipo e tenant.</p>
+
+<div class="bg-white rounded-xl border border-ink-100 shadow-card divide-y divide-ink-100">
+  {% for alert in alerts %}
+    {% include "includes/alert_card.html" with alert=alert %}
+  {% empty %}
+    <div class="px-5 py-10 text-center text-ink-400 text-[12.5px]">Nenhum alerta pendente. 🎉</div>
+  {% endfor %}
+</div>
+{% endblock %}

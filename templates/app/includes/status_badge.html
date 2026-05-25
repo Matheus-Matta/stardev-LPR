@@ -1,0 +1,29 @@
+{% comment %}
+  Badge de status padronizado.
+  Params:
+    kind: "allow" | "block" | "unknown" | "review" | "error" | "online" | "degraded" | "offline" | "queue" | "inactive"
+    label: texto opcional (usa padrão se omitido)
+{% endcomment %}
+{% if kind == "allow" %}
+  <span class="inline-flex items-center text-[11.5px] font-semibold px-2 py-1 rounded-md bg-ok-50 text-ok-700 border border-ok-100">{{ label|default:"Liberado" }}</span>
+{% elif kind == "block" %}
+  <span class="inline-flex items-center text-[11.5px] font-semibold px-2 py-1 rounded-md bg-err-50 text-err-700 border border-err-100">{{ label|default:"Bloqueado" }}</span>
+{% elif kind == "unknown" %}
+  <span class="inline-flex items-center text-[11.5px] font-semibold px-2 py-1 rounded-md bg-warn-50 text-warn-700 border border-warn-100">{{ label|default:"Desconhecida" }}</span>
+{% elif kind == "review" %}
+  <span class="inline-flex items-center text-[11.5px] font-semibold px-2 py-1 rounded-md bg-brand-50 text-brand-700 border border-brand-100">{{ label|default:"Revisão manual" }}</span>
+{% elif kind == "error" %}
+  <span class="inline-flex items-center text-[11.5px] font-semibold px-2 py-1 rounded-md bg-ink-100 text-ink-600 border border-ink-200">{{ label|default:"Erro" }}</span>
+{% elif kind == "online" %}
+  <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide text-ok-700 bg-ok-50 px-1.5 py-0.5 rounded">{{ label|default:"Online" }}</span>
+{% elif kind == "degraded" %}
+  <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide text-warn-700 bg-warn-50 px-1.5 py-0.5 rounded">{{ label|default:"Latência" }}</span>
+{% elif kind == "offline" %}
+  <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide text-err-700 bg-err-50 px-1.5 py-0.5 rounded">{{ label|default:"Offline" }}</span>
+{% elif kind == "queue" %}
+  <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide text-warn-700 bg-warn-50 px-1.5 py-0.5 rounded">{{ label|default:"Fila pendente" }}</span>
+{% elif kind == "inactive" %}
+  <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide text-ink-600 bg-ink-100 px-1.5 py-0.5 rounded">{{ label|default:"Inativo" }}</span>
+{% else %}
+  <span class="inline-flex items-center text-[11.5px] font-semibold px-2 py-1 rounded-md bg-ink-100 text-ink-700">{{ label }}</span>
+{% endif %}

@@ -1,0 +1,26 @@
+services:
+  web:
+    env_file: .env.staging
+    restart: unless-stopped
+
+  worker-ocr:
+    env_file: .env.staging
+    restart: unless-stopped
+
+  worker-capture:
+    env_file: .env.staging
+    restart: unless-stopped
+
+  worker-reports:
+    env_file: .env.staging
+    restart: unless-stopped
+
+  worker-dead:
+    env_file: .env.staging
+    restart: unless-stopped
+
+  db:
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped

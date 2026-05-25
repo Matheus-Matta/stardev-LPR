@@ -153,6 +153,33 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # Simulador de camera: transmite um .mp4 como RTMP Push para o MediaMTX.
+  # Ative com: docker compose --profile simulator up camera-simulator
+  # Coloque o video em ./videos/carros.mp4 antes de subir.
+  camera-simulator:
+    profiles: [simulator]
+    image: jrottenberg/ffmpeg:latest
+    depends_on:
+      mediamtx:
+        condition: service_started
+    volumes:
+      - ./videos:/videos:ro
+    environment:
+      CAMERA_KEY: ${SIMULATOR_CAMERA_KEY:-change-me}
+    command: >
+      -re
+      -stream_loop -1
+      -i /videos/carros.mp4
+      -vf scale=1280:-2,fps=25
+      -an
+      -c:v libx264
+      -preset veryfast
+      -tune zerolatency
+      -pix_fmt yuv420p
+      -f flv
+      rtmp://mediamtx:1935/live/${SIMULATOR_CAMERA_KEY:-change-me}
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

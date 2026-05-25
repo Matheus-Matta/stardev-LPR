@@ -163,7 +163,7 @@ services:
       mediamtx:
         condition: service_started
     volumes:
-      - ./videos:/videos:ro
+      - ./tests/videos:/videos:ro
     environment:
       CAMERA_KEY: ${SIMULATOR_CAMERA_KEY:-change-me}
     command: >

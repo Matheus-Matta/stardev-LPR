@@ -18,7 +18,13 @@ venv/
 *.log
 mediamtx.yml
 .claude/
-videos/*.mp4
-videos/*.mov
-videos/*.avi
-videos/*.mkv
+
+# Pastas de teste com arquivos binarios (imagens e videos)
+# Mantem READMEs, ignora os arquivos em si
+tests/image/*.png
+tests/image/*.jpg
+tests/image/*.jpeg
+tests/videos/*.mp4
+tests/videos/*.mov
+tests/videos/*.avi
+tests/videos/*.mkv

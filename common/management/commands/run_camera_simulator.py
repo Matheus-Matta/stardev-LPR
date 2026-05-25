@@ -67,8 +67,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--video",
             metavar="ARQUIVO",
-            default="videos/carros.mp4",
-            help="Caminho do arquivo de video (padrao: videos/carros.mp4)",
+            default="tests/videos/carros.mp4",
+            help="Caminho do arquivo de video (padrao: tests/videos/carros.mp4)",
         )
         parser.add_argument(
             "--no-loop",

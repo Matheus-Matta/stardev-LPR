@@ -377,7 +377,13 @@ def classify_plate_for_tenant(
     tenant,
     confidence: Decimal | None = None,
 ) -> dict:
-    queryset = PlateRegistry.objects.filter(tenant=tenant)
+    from django.db.models import Q
+    # Busca no tenant específico E em registros globais (tenant=None).
+    # Registros com tenant=None funcionam como lista global para qualquer câmera.
+    if tenant is not None:
+        queryset = PlateRegistry.objects.filter(Q(tenant=tenant) | Q(tenant__isnull=True))
+    else:
+        queryset = PlateRegistry.objects.all()
     result = _classify_plate_from_queryset(queryset, normalized_plate, confidence)
     if (
         result["decision"] == AccessEvent.Decision.UNKNOWN

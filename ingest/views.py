@@ -1,5 +1,9 @@
+import logging
+import threading
 from datetime import timedelta
 
+import cv2
+import numpy as np
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
@@ -15,9 +19,57 @@ from ingest.throttles import CameraIngestRateThrottle, GatewayIngestRateThrottle
 from plates.access import create_access_event, image_from_base64
 from plates.validators import sanitize_uploaded_image
 
+logger = logging.getLogger(__name__)
+
 TOKEN_HEADER = "HTTP_X_CAMERA_TOKEN"
 GATEWAY_TOKEN_HEADER = "HTTP_X_GATEWAY_TOKEN"
 IDEMPOTENCY_HEADER = "HTTP_IDEMPOTENCY_KEY"
+
+# ── LPR pipeline cache (uma instância por câmera) ─────────────────────────────
+
+_pipeline_cache: dict[int, object] = {}
+_pipeline_lock = threading.Lock()
+
+
+def _get_pipeline(camera_id: int):
+    with _pipeline_lock:
+        if camera_id not in _pipeline_cache:
+            from plates.lpr_pipeline import LPRPipeline
+            _pipeline_cache[camera_id] = LPRPipeline(camera_id=camera_id)
+        return _pipeline_cache[camera_id]
+
+
+def _image_to_frame(image_field) -> np.ndarray | None:
+    """Converte UploadedFile / FieldFile para array numpy BGR."""
+    try:
+        image_field.seek(0)
+        raw = np.frombuffer(image_field.read(), dtype=np.uint8)
+        frame = cv2.imdecode(raw, cv2.IMREAD_COLOR)
+        return frame if frame is not None else None
+    except Exception as exc:
+        logger.debug("[ingest] _image_to_frame erro: %s", exc)
+        return None
+
+
+def _run_pipeline(camera_id: int, image_field) -> list:
+    """Roda o LPR pipeline em uma imagem. Retorna lista de PlateEvent criados."""
+    from cameras.tasks import _save_plate_event
+
+    frame = _image_to_frame(image_field)
+    if frame is None:
+        return []
+
+    pipeline = _get_pipeline(camera_id)
+    events = pipeline.process_frame(frame)
+    saved = []
+    for ev in events:
+        try:
+            obj = _save_plate_event(ev, frame)
+            if obj is not None:
+                saved.append(obj)
+        except Exception as exc:
+            logger.warning("[ingest] save_plate_event erro  camera_id=%s: %s", camera_id, exc)
+    return saved
 
 
 class CameraEventIngestAPIView(APIView):
@@ -51,10 +103,30 @@ class CameraEventIngestAPIView(APIView):
 
         payload = _event_payload(request)
         image = _extract_image(request)
+
+        # Se chegou imagem, roda o LPR pipeline (OCR + tracking + dedup)
+        if image is not None:
+            saved = _run_pipeline(camera.id, image)
+            if saved:
+                first = saved[0]
+                return Response(
+                    {
+                        "status": "accepted",
+                        "event_id": first.id,
+                        "event_uuid": str(first.event_uuid),
+                        "processing_status": first.status,
+                        "detections": len(saved),
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
+            # Pipeline não gerou eventos confirmados (sem placa ou provisório)
+            return Response({"status": "no_plate"}, status=status.HTTP_202_ACCEPTED)
+
+        # Sem imagem → a câmera envia o texto da placa no payload (fluxo legado)
         event = create_access_event(
             camera=camera,
             payload=payload,
-            image=image,
+            image=None,
             idempotency_key=request.META.get(IDEMPOTENCY_HEADER, ""),
         )
         return Response(
@@ -110,11 +182,30 @@ class GatewayEventIngestAPIView(APIView):
             )
 
         image = _extract_image(request)
+
+        # Se chegou imagem, roda o LPR pipeline (OCR + tracking + dedup)
+        if image is not None:
+            saved = _run_pipeline(camera.id, image)
+            if saved:
+                first = saved[0]
+                return Response(
+                    {
+                        "status": "accepted",
+                        "event_id": first.id,
+                        "event_uuid": str(first.event_uuid),
+                        "processing_status": first.status,
+                        "detections": len(saved),
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
+            return Response({"status": "no_plate"}, status=status.HTTP_202_ACCEPTED)
+
+        # Sem imagem → gateway envia texto da placa no payload (fluxo legado)
         event = create_access_event(
             camera=camera,
             gateway=gateway,
             payload=payload,
-            image=image,
+            image=None,
             idempotency_key=request.META.get(IDEMPOTENCY_HEADER, ""),
         )
         return Response(

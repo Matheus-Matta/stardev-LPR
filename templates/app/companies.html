@@ -1,0 +1,82 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Empresas — starLPR{% endblock %}
+
+{% block content %}
+
+<div>
+  <div class="text-[12px] text-ink-400 font-medium">Cadastros · Empresas</div>
+  <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Empresas</h1>
+  <p class="text-[13px] text-ink-500 mt-1">Businesses (contas principais) registradas na plataforma.</p>
+</div>
+
+{# Filtros #}
+<form method="get" class="bg-white rounded-xl border border-ink-100 shadow-card p-4 flex items-end gap-3">
+  <div class="flex-1">
+    <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Buscar</label>
+    <input type="text" name="q" value="{{ q }}" placeholder="Nome da empresa…"
+           class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+  </div>
+  <button type="submit" class="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold">Buscar</button>
+  {% if q %}<a href="{% url 'lpr:companies' %}" class="h-9 px-3 leading-9 rounded-lg border border-ink-200 text-ink-600 text-[13px] hover:bg-ink-50">Limpar</a>{% endif %}
+</form>
+
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Empresa</th>
+          <th class="text-left font-semibold px-3 py-2.5">Razão social</th>
+          <th class="text-left font-semibold px-3 py-2.5">Documento</th>
+          <th class="text-left font-semibold px-3 py-2.5">Tenants</th>
+          <th class="text-left font-semibold px-3 py-2.5">Status</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for row in company_rows %}
+        {% with biz=row.obj %}
+        <tr class="hover:bg-ink-50/60">
+          <td class="pl-5 pr-3 py-3 font-semibold text-ink-800">{{ biz.name }}</td>
+          <td class="px-3 py-3 text-ink-600">{{ biz.legal_name|default:"—" }}</td>
+          <td class="px-3 py-3 text-ink-600 font-mono text-[11.5px]">{{ biz.document|default:"—" }}</td>
+          <td class="px-3 py-3">
+            <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-brand-50 text-brand-700">{{ row.tenant_count }}</span>
+          </td>
+          <td class="px-3 py-3">
+            {% if biz.is_active %}
+              <span class="text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ok-50 text-ok-700">Ativa</span>
+            {% else %}
+              <span class="text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ink-100 text-ink-500">Inativa</span>
+            {% endif %}
+          </td>
+          <td class="pr-5 pl-3 py-3"></td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr>
+          <td colspan="6" class="px-5 py-16 text-center text-ink-400 text-[13px]">Nenhuma empresa encontrada.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+    <div class="text-[11.5px] text-ink-500">{{ total_count|intcomma }} empresa{{ total_count|pluralize }}</div>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% querystring page=page_obj.previous_page_number %}" class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">← Anterior</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?{% querystring page=page_obj.next_page_number %}" class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">Próxima →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

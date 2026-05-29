@@ -1,0 +1,240 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Evento #{{ event.id }} — starLPR{% endblock %}
+
+{% block content %}
+
+{# Breadcrumb #}
+<div class="text-[12px] text-ink-400 font-medium">
+  <a href="{% url 'lpr:events' %}" class="hover:text-ink-700">Eventos de placas</a>
+  <span class="mx-2">›</span>
+  <span class="text-ink-700">Evento #{{ event.id }}</span>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+  {# ── Coluna principal ── #}
+  <div class="xl:col-span-2 space-y-4">
+
+    {# Imagem do evento #}
+    <div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+      <div class="px-5 py-3 border-b border-ink-100 flex items-center justify-between">
+        <h2 class="text-[15px] font-bold text-ink-900">Imagem capturada</h2>
+        {% if event.crop_image %}
+          <a href="{{ event.crop_image.url }}" target="_blank"
+             class="text-[12px] font-semibold text-brand-700 hover:underline">Ver original</a>
+        {% elif event.image %}
+          <a href="{{ event.image.url }}" target="_blank"
+             class="text-[12px] font-semibold text-brand-700 hover:underline">Ver original</a>
+        {% endif %}
+      </div>
+      <div class="p-4">
+        {% if event.crop_image %}
+          <img src="{{ event.crop_image.url }}" alt="Imagem recortada da placa"
+               class="w-full max-h-72 object-contain rounded-lg bg-ink-50" />
+        {% elif event.image %}
+          <img src="{{ event.image.url }}" alt="Imagem do evento"
+               class="w-full max-h-72 object-contain rounded-lg bg-ink-50" />
+        {% else %}
+          <div class="snap w-full h-40 rounded-lg grid place-items-center text-[11px] font-mono text-ink-400">
+            Sem imagem disponível
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Detalhes do evento #}
+    <div class="bg-white rounded-xl border border-ink-100 shadow-card">
+      <div class="px-5 py-3 border-b border-ink-100">
+        <h2 class="text-[15px] font-bold text-ink-900">Detalhes do evento</h2>
+      </div>
+      <div class="divide-y divide-ink-100">
+
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">UUID</span>
+          <span class="text-[12px] text-ink-800 font-mono">{{ event.event_uuid }}</span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Placa lida</span>
+          <span class="plate-chip plate">{{ event.normalized_plate|default:event.plate_text|default:"—" }}</span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Confiança OCR</span>
+          <div>
+            {% if event_row.confidence_pct %}
+              {% include "app/includes/confidence_bar.html" with confidence=event_row.confidence confidence_pct=event_row.confidence_pct %}
+            {% else %}
+              <span class="text-ink-400">—</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Decisão</span>
+          {% include "app/includes/status_badge.html" with kind=event_row.decision_kind %}
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Movimento</span>
+          <span class="text-[12.5px] text-ink-800 font-semibold">
+            {% if event.movement_type == "entry" %}
+              <span class="text-ok-700">↗ Entrada</span>
+            {% elif event.movement_type == "exit" %}
+              <span class="text-ink-700">↙ Saída</span>
+            {% else %}
+              Desconhecido
+            {% endif %}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Classificação</span>
+          <span class="inline-flex items-center text-[11px] font-bold uppercase tracking-wide px-1.5 py-1 rounded
+            {% if event_row.classification == 'whitelist' %}bg-ok-50 text-ok-700
+            {% elif event_row.classification == 'blacklist' %}bg-err-50 text-err-700
+            {% else %}bg-warn-50 text-warn-700{% endif %}">
+            {{ event_row.get_classification_display }}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Câmera</span>
+          <span class="text-[12.5px] text-ink-800">{{ event.camera.name|default:"—" }}</span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Unidade</span>
+          <span class="text-[12.5px] text-ink-600">{{ event.camera.tenant.name|default:"—" }}</span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Gateway</span>
+          <span class="text-[12.5px] text-ink-600">{{ event.gateway.name|default:"—" }}</span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Capturado em</span>
+          <span class="text-[12.5px] text-ink-800 tabular-nums">{{ event.captured_at|date:"d/m/Y H:i:s" }}</span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Recebido em</span>
+          <span class="text-[12.5px] text-ink-600 tabular-nums">{{ event.received_at|date:"d/m/Y H:i:s" }}</span>
+        </div>
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Processado em</span>
+          <span class="text-[12.5px] text-ink-600 tabular-nums">{{ event.processed_at|date:"d/m/Y H:i:s"|default:"—" }}</span>
+        </div>
+        {% if event.decision_reason %}
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Motivo da decisão</span>
+          <span class="text-[12.5px] text-ink-600">{{ event.decision_reason }}</span>
+        </div>
+        {% endif %}
+        {% if event.reviewed_by %}
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Revisado por</span>
+          <span class="text-[12.5px] text-ink-600">{{ event.reviewed_by.username }} em {{ event.reviewed_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        {% endif %}
+        <div class="grid grid-cols-2 px-5 py-3">
+          <span class="text-[12px] text-ink-500 font-medium">Chave idempotência</span>
+          <span class="text-[11.5px] text-ink-400 font-mono truncate">{{ event.idempotency_key|default:"—" }}</span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Coluna lateral: ações + cadastro #}
+  <div class="space-y-4">
+
+    {# Ações #}
+    <div class="bg-white rounded-xl border border-ink-100 shadow-card p-5 space-y-3">
+      <h3 class="text-[14px] font-bold text-ink-900">Ações</h3>
+
+      {# Registro rápido — só para placas desconhecidas #}
+      {% if event.decision == "unknown" or event.decision == "manual_review" %}
+      <div class="flex gap-2">
+        <form method="post" action="{% url 'lpr:event-register' event.id %}" class="flex-1">
+          {% csrf_token %}
+          <input type="hidden" name="list_type" value="whitelist">
+          <button type="submit"
+                  class="flex items-center justify-center gap-1.5 w-full h-10 px-3 rounded-lg bg-ok-600 hover:bg-ok-700 text-white text-[12.5px] font-semibold">
+            <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Whitelist
+          </button>
+        </form>
+        <form method="post" action="{% url 'lpr:event-register' event.id %}" class="flex-1">
+          {% csrf_token %}
+          <input type="hidden" name="list_type" value="blacklist">
+          <button type="submit"
+                  class="flex items-center justify-center gap-1.5 w-full h-10 px-3 rounded-lg bg-err-600 hover:bg-err-700 text-white text-[12.5px] font-semibold">
+            <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Blacklist
+          </button>
+        </form>
+      </div>
+      <div class="text-[11px] text-ink-400 text-center -mt-1">Cadastra a placa e resolve alertas abertos</div>
+      {% endif %}
+
+      <a href="{% url 'lpr:event-correct' event.id %}"
+         class="flex items-center gap-2 w-full h-10 px-4 rounded-lg border border-ink-200 text-ink-700 text-[13px] font-semibold hover:bg-ink-50">
+        <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        Corrigir placa
+      </a>
+      <a href="{% url 'lpr:event-review' event.id %}"
+         class="flex items-center gap-2 w-full h-10 px-4 rounded-lg border border-ink-200 text-ink-700 text-[13px] font-semibold hover:bg-ink-50">
+        <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M21 12a9 9 0 11-3-6.7M21 4v5h-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Alterar decisão
+      </a>
+      <a href="{% url 'lpr:events' %}"
+         class="flex items-center gap-2 w-full h-10 px-4 rounded-lg border border-ink-200 text-ink-500 text-[13px] font-semibold hover:bg-ink-50">
+        <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M19 12H5M11 19L4 12l7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Voltar aos eventos
+      </a>
+    </div>
+
+    {# Cadastro vinculado #}
+    {% if event.plate_registry %}
+    <div class="bg-white rounded-xl border border-ink-100 shadow-card p-5">
+      <h3 class="text-[14px] font-bold text-ink-900 mb-3">Cadastro vinculado</h3>
+      <div class="space-y-2.5 text-[12.5px]">
+        <div class="flex justify-between">
+          <span class="text-ink-500">Lista</span>
+          <span class="font-semibold text-ink-800 capitalize">{{ event.plate_registry.list_type }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-ink-500">Responsável</span>
+          <span class="text-ink-700">{{ event.plate_registry.owner_name|default:"—" }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-ink-500">Veículo</span>
+          <span class="text-ink-700">{{ event.plate_registry.vehicle_model|default:"—" }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-ink-500">Validade</span>
+          <span class="text-ink-700">{{ event.plate_registry.valid_until|date:"d/m/Y"|default:"Sem validade" }}</span>
+        </div>
+        <a href="{% url 'lpr:plate-detail' event.plate_registry.id %}"
+           class="block mt-3 text-center h-8 leading-8 rounded-lg bg-ink-50 hover:bg-ink-100 text-ink-700 text-[12px] font-semibold">
+          Ver cadastro completo
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Status de processamento #}
+    <div class="bg-white rounded-xl border border-ink-100 shadow-card p-5">
+      <h3 class="text-[14px] font-bold text-ink-900 mb-3">Processamento</h3>
+      <div class="space-y-2.5 text-[12.5px]">
+        <div class="flex justify-between">
+          <span class="text-ink-500">Status</span>
+          <span class="font-semibold text-ink-800">{{ event.get_status_display }}</span>
+        </div>
+        {% if event.error_message %}
+        <div class="mt-2 p-3 bg-err-50 rounded-lg text-[11.5px] text-err-700 font-mono break-all">
+          {{ event.error_message }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

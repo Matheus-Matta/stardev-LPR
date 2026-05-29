@@ -1,13 +1,6 @@
 {% comment %}
   Topbar fixa com toggle de sidebar, breadcrumb, busca de placa, badge de ambiente,
-  notificações, perfil do usuário e live ticker de eventos.
-  Contexto esperado:
-    current_business    — objeto Business
-    current_tenant      — objeto Tenant
-    environment         — "production" | "staging" | "development"
-    notifications_unread — int
-    request.user        — usuário Django
-    ticker_events       — list[{plate, summary, camera, ago}]
+  indicador MediaMTX, notificações em tempo real e perfil do usuário.
 {% endcomment %}
 <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-ink-100 shrink-0">
 
@@ -45,49 +38,147 @@
       </label>
     </form>
 
-    {# Badge de ambiente #}
-    {% if environment == "production" %}
-      <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-ok-50 text-ok-700 border border-ok-100 uppercase shrink-0">
-        <span class="w-1.5 h-1.5 rounded-full bg-ok-500"></span> Produção
-      </span>
-    {% elif environment == "staging" %}
-      <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-warn-50 text-warn-700 border border-warn-100 uppercase shrink-0">
-        <span class="w-1.5 h-1.5 rounded-full bg-warn-500"></span> Staging
-      </span>
-    {% else %}
-      <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-brand-50 text-brand-700 border border-brand-100 uppercase shrink-0">
-        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span> Dev
-      </span>
-    {% endif %}
-
-    {# Notificações #}
-    <button class="relative w-9 h-9 grid place-items-center rounded-lg hover:bg-ink-50 text-ink-600 shrink-0">
-      <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5">
-        <path d="M6 8a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-        <path d="M10 18a2 2 0 004 0" stroke="currentColor" stroke-width="1.6"/>
-      </svg>
-      {% if notifications_unread %}
-        <span class="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-err-500 ring-2 ring-white"></span>
+    {# Badge de ambiente + indicador MediaMTX #}
+    <div class="hidden sm:flex items-center gap-1.5 shrink-0">
+      {% if environment == "production" %}
+        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-ok-50 text-ok-700 border border-ok-100 uppercase">
+          <span class="w-1.5 h-1.5 rounded-full bg-ok-500"></span> Produção
+        </span>
+      {% elif environment == "staging" %}
+        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-warn-50 text-warn-700 border border-warn-100 uppercase">
+          <span class="w-1.5 h-1.5 rounded-full bg-warn-500"></span> Staging
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-md bg-brand-50 text-brand-700 border border-brand-100 uppercase">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span> Dev
+        </span>
       {% endif %}
-    </button>
 
-    {# Perfil do usuário #}
-    <button class="flex items-center gap-2 pl-1 pr-2 h-9 rounded-lg hover:bg-ink-50 shrink-0">
-      <span class="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white grid place-items-center text-[11px] font-bold shrink-0">
-        {{ request.user.initials|default:request.user.get_full_name|slice:":2"|upper|default:"U" }}
+      {# Indicador MediaMTX — ponto colorido que o JS atualiza #}
+      <span title="MediaMTX: verificando…"
+            class="inline-flex items-center gap-1 text-[10px] font-semibold text-ink-400 px-2 py-1 rounded-md bg-ink-50 border border-ink-100">
+        <span id="mediamtx-dot" class="w-1.5 h-1.5 rounded-full bg-ink-300 transition-colors duration-500"></span>
+        MTX
       </span>
-      <span class="hidden md:block text-left leading-tight">
-        <span class="block text-[12px] font-semibold text-ink-800">{{ request.user.get_full_name|default:request.user.username }}</span>
-        <span class="block text-[10.5px] text-ink-400">{{ request.user.email }}</span>
-      </span>
-      <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 text-ink-400 shrink-0">
-        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-      </svg>
-    </button>
+    </div>
+
+    {# Notificações — dropdown Alpine com eventos ao vivo #}
+    <div x-data="{ open: false, count: 0 }"
+         x-on:lpr-new-events.window="count += $event.detail.n; open = open"
+         class="relative shrink-0"
+         @click.outside="open = false">
+
+      <button @click="open = !open; count = 0"
+              class="relative w-9 h-9 grid place-items-center rounded-lg hover:bg-ink-50 text-ink-600 shrink-0">
+        <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5">
+          <path d="M6 8a6 6 0 1112 0c0 4 2 6 2 6H4s2-2 2-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M10 18a2 2 0 004 0" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        {# Dot vermelho — visível quando há novos eventos #}
+        <span id="notif-dot"
+              x-show="count > 0"
+              class="absolute top-1.5 right-2 min-w-[14px] h-3.5 px-0.5 rounded-full bg-err-500 ring-2 ring-white
+                     flex items-center justify-center text-[9px] font-bold text-white tabular-nums"
+              x-text="count > 9 ? '9+' : count"></span>
+      </button>
+
+      {# Painel de notificações #}
+      <div x-show="open"
+           x-transition:enter="transition ease-out duration-100"
+           x-transition:enter-start="opacity-0 scale-95"
+           x-transition:enter-end="opacity-100 scale-100"
+           x-transition:leave="transition ease-in duration-75"
+           x-transition:leave-start="opacity-100 scale-100"
+           x-transition:leave-end="opacity-0 scale-95"
+           class="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl border border-ink-100 shadow-pop z-50 origin-top-right overflow-hidden">
+
+        {# Cabeçalho do painel #}
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+          <div class="flex items-center gap-2">
+            <span class="text-[13px] font-bold text-ink-900">Eventos recentes</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-ok-500 pulse-dot"></span>
+          </div>
+          <a href="{% url 'lpr:events' %}"
+             class="text-[11.5px] font-semibold text-brand-700 hover:underline">
+            Ver todos
+          </a>
+        </div>
+
+        {# Lista de eventos — preenchida pelo JS #}
+        <div id="notif-list" class="divide-y divide-ink-50 max-h-72 overflow-y-auto scroll-soft">
+          <div class="px-4 py-6 text-center text-[12px] text-ink-400">
+            <div class="animate-pulse">Carregando eventos…</div>
+          </div>
+        </div>
+
+        {# Rodapé #}
+        <div class="px-4 py-2.5 border-t border-ink-100 flex items-center justify-between text-[11px] text-ink-400">
+          <span>Atualização automática a cada 3s</span>
+          <span id="notif-footer-count">—</span>
+        </div>
+      </div>
+    </div>
+
+    {# Perfil — dropdown Alpine #}
+    <div x-data="{ open: false }" class="relative shrink-0" @click.outside="open = false">
+      <button @click="open = !open"
+              class="flex items-center gap-2 pl-1 pr-2 h-9 rounded-lg hover:bg-ink-100 transition">
+        <span class="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white grid place-items-center text-[11px] font-bold shrink-0">
+          {{ request.user.get_full_name|slice:":2"|upper|default:request.user.username|slice:":2"|upper }}
+        </span>
+        <span class="hidden md:block text-left leading-tight">
+          <span class="block text-[12px] font-semibold text-ink-800">{{ request.user.get_full_name|default:request.user.username }}</span>
+          <span class="block text-[10.5px] text-ink-400">{{ request.user.email }}</span>
+        </span>
+        <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5 text-ink-400 shrink-0 transition-transform duration-150"
+             :class="open ? 'rotate-180' : ''">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <div x-show="open"
+           x-transition:enter="transition ease-out duration-100"
+           x-transition:enter-start="opacity-0 scale-95"
+           x-transition:enter-end="opacity-100 scale-100"
+           x-transition:leave="transition ease-in duration-75"
+           x-transition:leave-start="opacity-100 scale-100"
+           x-transition:leave-end="opacity-0 scale-95"
+           class="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-ink-100 shadow-pop z-50 py-1 origin-top-right">
+
+        <div class="px-4 py-2.5 border-b border-ink-100">
+          <div class="text-[12px] font-semibold text-ink-800 truncate">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="text-[11px] text-ink-400 truncate">{{ request.user.email }}</div>
+        </div>
+
+        <a href="{% url 'lpr:profile' %}" @click="open = false"
+           class="flex items-center gap-3 px-4 py-2.5 text-[12.5px] text-ink-700 hover:bg-ink-50 transition">
+          <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 text-ink-400">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/>
+          </svg>
+          Editar perfil
+        </a>
+
+        <div class="border-t border-ink-100 mt-1 pt-1">
+          <form method="post" action="{% url 'lpr:logout' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-[12.5px] text-err-600 hover:bg-err-50 transition text-left">
+              <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <polyline points="16 17 21 12 16 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              Sair
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
 
   </div>
 
-  {# Live ticker de eventos #}
+  {# Live ticker de eventos — atualizado via JS #}
   <div class="border-t border-ink-100 bg-ink-50/60">
     <div class="px-4 md:px-6 h-9 flex items-center gap-3 text-[12px] text-ink-500 overflow-hidden">
       <span class="flex items-center gap-1.5 text-ok-700 font-semibold shrink-0">
@@ -99,7 +190,7 @@
           {% for ev in ticker_events %}
             <span><span class="plate">{{ ev.plate }}</span> · {{ ev.summary }} · {{ ev.camera }} · {{ ev.ago }}</span>
           {% empty %}
-            <span><span class="plate">—</span> · Aguardando eventos · Sistema operacional</span>
+            <span class="text-ink-400">Aguardando eventos…</span>
           {% endfor %}
         </div>
       </div>

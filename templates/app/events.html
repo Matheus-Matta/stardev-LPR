@@ -1,0 +1,142 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Eventos de Placas — starLPR{% endblock %}
+
+{% block content %}
+
+{# Cabeçalho #}
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Operação · Eventos</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Eventos de Placas</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Histórico completo de leituras e decisões de acesso.</p>
+  </div>
+  <a href="{% url 'lpr:export' %}"
+     class="flex items-center gap-2 h-9 px-3 rounded-lg bg-white border border-ink-200 text-[12.5px] font-semibold text-ink-700 hover:bg-ink-50">
+    <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Exportar
+  </a>
+</div>
+
+{# Filtros #}
+<form method="get" class="bg-white rounded-xl border border-ink-100 shadow-card p-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+    <div class="xl:col-span-2">
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Placa</label>
+      <input type="text" name="plate" value="{{ q_plate }}" placeholder="ABC1D23"
+             class="plate w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Câmera</label>
+      <select name="camera" class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300">
+        <option value="">Todas</option>
+        {% for cam in cameras_for_filter %}
+          <option value="{{ cam.id }}" {% if q_camera == cam.id|stringformat:"s" %}selected{% endif %}>{{ cam.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Decisão</label>
+      <select name="decision" class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300">
+        <option value="">Todas</option>
+        {% for val, label in decisions %}
+          <option value="{{ val }}" {% if q_decision == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Movimento</label>
+      <select name="movement" class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300">
+        <option value="">Todos</option>
+        {% for val, label in movements %}
+          <option value="{{ val }}" {% if q_movement == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="flex items-end gap-2">
+      <button type="submit" class="flex-1 h-9 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold">Filtrar</button>
+      <a href="{% url 'lpr:events' %}" class="h-9 px-3 leading-9 rounded-lg border border-ink-200 text-ink-600 text-[13px] hover:bg-ink-50">Limpar</a>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-3 mt-3">
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Data inicial</label>
+      <input type="date" name="date_from" value="{{ q_date_from }}"
+             class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Data final</label>
+      <input type="date" name="date_to" value="{{ q_date_to }}"
+             class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+    </div>
+  </div>
+</form>
+
+{# Tabela #}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="flex items-center justify-between px-5 py-3 border-b border-ink-100">
+    <div class="text-[13px] text-ink-600">
+      <span class="font-bold text-ink-900">{{ total_count|intcomma }}</span> evento{{ total_count|pluralize }} encontrado{{ total_count|pluralize }}
+    </div>
+    <div class="text-[12px] text-ink-400">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</div>
+  </div>
+
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Veículo</th>
+          <th class="text-left font-semibold px-3 py-2.5">Tipo</th>
+          <th class="text-left font-semibold px-3 py-2.5">Câmera / Unidade</th>
+          <th class="text-left font-semibold px-3 py-2.5">Confiança</th>
+          <th class="text-left font-semibold px-3 py-2.5">Classificação</th>
+          <th class="text-left font-semibold px-3 py-2.5">Decisão</th>
+          <th class="text-right font-semibold px-3 py-2.5">Horário</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for ev in event_rows %}
+          {% include "app/includes/event_row.html" with ev=ev %}
+        {% empty %}
+          <tr>
+            <td colspan="8" class="px-5 py-16 text-center">
+              <div class="text-ink-400 text-[13px]">Nenhum evento encontrado para este filtro.</div>
+              <a href="{% url 'lpr:events' %}" class="mt-2 inline-block text-brand-600 font-semibold text-[12.5px] hover:underline">Limpar filtros</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Paginação #}
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+    <div class="text-[11.5px] text-ink-500">
+      Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_count|intcomma }}
+    </div>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% querystring page=page_obj.previous_page_number %}"
+           class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">← Anterior</a>
+      {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span class="h-8 px-3 rounded-lg bg-brand-600 text-white text-[12px] font-semibold leading-8">{{ num }}</span>
+        {% elif num|add:"-3" <= page_obj.number and num <= page_obj.number|add:"3" %}
+          <a href="?{% querystring page=num %}"
+             class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <a href="?{% querystring page=page_obj.next_page_number %}"
+           class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">Próxima →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

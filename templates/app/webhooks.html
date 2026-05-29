@@ -1,0 +1,125 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Webhooks — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Plataforma · Webhooks</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Webhooks</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Integrações externas via eventos HTTP.</p>
+  </div>
+  <a href="{% url 'lpr:webhook-create' %}"
+     class="flex items-center gap-2 h-9 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[12.5px] font-semibold shadow-card">
+    <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Novo webhook
+  </a>
+</div>
+
+{# KPIs #}
+<div class="grid grid-cols-2 gap-4">
+  <div class="bg-white rounded-xl border border-ok-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ok-600 uppercase tracking-wide">Ativos</div>
+    <div class="text-[28px] font-extrabold text-ok-700 mt-1">{{ active_count }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ink-400 uppercase tracking-wide">Inativos</div>
+    <div class="text-[28px] font-extrabold text-ink-500 mt-1">{{ inactive_count }}</div>
+  </div>
+</div>
+
+{# Filtros #}
+<form method="get" class="bg-white rounded-xl border border-ink-100 shadow-card p-4">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Tipo de evento</label>
+      <select name="type" class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px]">
+        <option value="">Todos</option>
+        {% for val, label in event_types %}
+          <option value="{{ val }}" {% if q_type == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Tenant</label>
+      <select name="tenant" class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px]">
+        <option value="">Todos</option>
+        {% for t in tenants %}
+          <option value="{{ t.id }}" {% if q_tenant == t.id|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="flex items-end gap-2">
+      <button type="submit" class="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold">Filtrar</button>
+      <a href="{% url 'lpr:webhooks' %}" class="h-9 px-3 leading-9 rounded-lg border border-ink-200 text-ink-600 text-[13px] hover:bg-ink-50">Limpar</a>
+    </div>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">URL</th>
+          <th class="text-left font-semibold px-3 py-2.5">Evento</th>
+          <th class="text-left font-semibold px-3 py-2.5">Tenant</th>
+          <th class="text-left font-semibold px-3 py-2.5">Status</th>
+          <th class="text-left font-semibold px-3 py-2.5">Cadastrado</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for wh in webhook_rows %}
+        <tr class="hover:bg-ink-50/60">
+          <td class="pl-5 pr-3 py-3">
+            <div class="font-mono text-[11.5px] text-ink-700 max-w-xs truncate">{{ wh.url }}</div>
+          </td>
+          <td class="px-3 py-3">
+            <span class="text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-brand-50 text-brand-700">
+              {{ wh.event_type }}
+            </span>
+          </td>
+          <td class="px-3 py-3 text-ink-600">{{ wh.tenant.name|default:"Global" }}</td>
+          <td class="px-3 py-3">
+            {% if wh.is_active %}
+              <span class="text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ok-50 text-ok-700">Ativo</span>
+            {% else %}
+              <span class="text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ink-100 text-ink-500">Inativo</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-ink-400 tabular-nums text-[11.5px]">{{ wh.created_at|naturaltime }}</td>
+          <td class="pr-5 pl-3 py-3 text-right">
+            <a href="{% url 'lpr:webhook-edit' wh.id %}"
+               class="text-[11.5px] font-semibold h-7 px-2 leading-7 rounded-md hover:bg-ink-100 text-ink-600">
+              Editar
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="px-5 py-16 text-center text-ink-400 text-[13px]">Nenhum webhook configurado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+    <div class="text-[11.5px] text-ink-500">{{ total_count }} webhook{{ total_count|pluralize }}</div>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% querystring page=page_obj.previous_page_number %}" class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">← Anterior</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?{% querystring page=page_obj.next_page_number %}" class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">Próxima →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

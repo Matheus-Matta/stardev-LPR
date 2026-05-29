@@ -133,6 +133,13 @@ class Camera(models.Model):
     timezone = models.CharField(max_length=64, default="America/Sao_Paulo")
     is_active = models.BooleanField(default=True)
     last_seen_at = models.DateTimeField(null=True, blank=True)
+    # ROI para analytics LPR: [x, y, largura, altura] em pixels. None = frame inteiro.
+    lpr_roi = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Região de interesse para LPR: [x, y, largura, altura] em pixels. "
+                  "Deixe vazio para analisar o frame inteiro.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

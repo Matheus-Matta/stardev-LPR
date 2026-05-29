@@ -5,6 +5,7 @@ import logging
 
 import requests
 from celery import shared_task
+from django.conf import settings
 from django.utils import timezone
 
 from common.models import WebhookDelivery, WebhookSubscription
@@ -26,7 +27,13 @@ def dispatch_webhooks(event_type: str, payload: dict) -> int:
             event_type=event_type,
             payload=payload,
         )
-        deliver_webhook.delay(delivery.id)
+        if settings.CELERY_TASK_ALWAYS_EAGER:
+            try:
+                deliver_webhook.delay(delivery.id)
+            except Exception as exc:
+                logger.debug("[webhook] eager delivery failed subscription=%s: %s", subscription.id, exc)
+        else:
+            deliver_webhook.delay(delivery.id)
         count += 1
     return count
 
@@ -66,8 +73,28 @@ def deliver_webhook(self, delivery_id: int) -> None:
                 "updated_at",
             ]
         )
+
+        # Circuit breaker: desativa a subscription após esgotar todas as tentativas.
+        if self.request.retries >= self.max_retries:
+            sub = delivery.subscription
+            sub.is_active = False
+            sub.save(update_fields=["is_active", "updated_at"])
+            logger.warning(
+                "[webhook] subscription %s desativada após %d falhas consecutivas  url=%s",
+                sub.id, self.max_retries + 1, sub.url,
+            )
+            return
+
+        # Em modo eager (dev) com erro de conexão/DNS: não retenta — a URL
+        # não existe localmente (ex.: seed webhooks para hooks.example.com).
+        is_conn_error = "ConnectionError" in type(exc).__name__ or "NameResolution" in str(exc)
+        if settings.CELERY_TASK_ALWAYS_EAGER and is_conn_error:
+            logger.debug("[webhook] eager: ignorando retry para URL inacessível  url=%s", delivery.subscription.url)
+            return
+
         countdown = min((2 ** self.request.retries) * 30, 900)
-        logger.warning("Retrying webhook delivery %s in %s seconds", delivery_id, countdown)
+        log = logger.debug if settings.CELERY_TASK_ALWAYS_EAGER else logger.warning
+        log("[webhook] retry %s/%s em %ss  url=%s", self.request.retries + 1, self.max_retries, countdown, delivery.subscription.url)
         raise self.retry(exc=exc, countdown=countdown) from exc
 
     delivery.status = WebhookDelivery.Status.SUCCESS

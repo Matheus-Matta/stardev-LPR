@@ -1,0 +1,60 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Alterar Unidade — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto space-y-4">
+
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Dashboard · Unidade</div>
+    <h1 class="text-[22px] font-extrabold tracking-tight text-ink-900 leading-tight">Selecionar unidade ativa</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Escolha a unidade (tenant) que deseja visualizar no painel.</p>
+  </div>
+
+  {% if available_tenants %}
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden divide-y divide-ink-100">
+    {% for tenant in available_tenants %}
+    <a href="{% url 'lpr:dashboard' %}"
+       class="flex items-center gap-4 px-5 py-4 hover:bg-ink-50/60 transition group">
+      <div class="w-10 h-10 rounded-lg bg-brand-50 text-brand-700 grid place-items-center text-[12px] font-bold shrink-0">
+        {{ tenant.name|slice:":2"|upper }}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-[14px] font-semibold text-ink-800 group-hover:text-brand-700 truncate">{{ tenant.name }}</div>
+        <div class="text-[11.5px] text-ink-400 mt-0.5">
+          {{ tenant.business.name }} · {{ tenant.location|default:tenant.timezone }}
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        {% if tenant.is_active %}
+          <span class="text-[10.5px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ok-50 text-ok-700">Ativo</span>
+        {% else %}
+          <span class="text-[10.5px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ink-100 text-ink-400">Inativo</span>
+        {% endif %}
+        <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 text-ink-400 group-hover:text-brand-500">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-ink-50 border border-ink-200 rounded-xl p-8 text-center">
+    <div class="text-ink-500 text-[13px]">Nenhuma unidade disponível para sua conta.</div>
+    <p class="text-[12px] text-ink-400 mt-1">Contate o administrador para obter acesso.</p>
+  </div>
+  {% endif %}
+
+  <div>
+    <a href="{% url 'lpr:dashboard' %}"
+       class="inline-flex items-center gap-2 text-[12.5px] font-semibold text-ink-500 hover:text-ink-700">
+      <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M19 12H5M11 19L4 12l7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Voltar ao dashboard
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Cadastro de Placas — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Cadastros · Placas</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Cadastro de Placas</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Gerenciamento de whitelist, blacklist e placas desconhecidas.</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{% url 'lpr:plates-import' %}"
+       class="h-9 px-3 leading-9 rounded-lg border border-ink-200 text-[12.5px] font-semibold text-ink-600 hover:bg-ink-50">
+      Importar CSV
+    </a>
+    <a href="{% url 'lpr:plate-create' %}"
+       class="flex items-center gap-2 h-9 px-3 rounded-lg bg-ink-900 hover:bg-ink-800 text-white text-[12.5px] font-semibold shadow-card">
+      <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Cadastrar placa
+    </a>
+  </div>
+</div>
+
+{# Abas #}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="flex items-center justify-between px-5 pt-4 border-b border-ink-100">
+    <div class="flex items-center gap-1 -mb-px flex-wrap">
+      <a href="?list=whitelist{% if q_plate %}&q={{ q_plate }}{% endif %}"
+         class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if active_list == 'whitelist' %}tab-active{% else %}tab-idle{% endif %}">
+        Whitelist
+        <span class="text-[10.5px] font-bold ml-1 bg-ok-100 text-ok-700 px-1.5 py-0.5 rounded">{{ counts.whitelist|intcomma }}</span>
+      </a>
+      <a href="?list=blacklist{% if q_plate %}&q={{ q_plate }}{% endif %}"
+         class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if active_list == 'blacklist' %}tab-active{% else %}tab-idle{% endif %}">
+        Blacklist
+        <span class="text-[10.5px] font-bold ml-1 bg-err-100 text-err-700 px-1.5 py-0.5 rounded">{{ counts.blacklist }}</span>
+      </a>
+      <a href="?list=unknown{% if q_plate %}&q={{ q_plate }}{% endif %}"
+         class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if active_list == 'unknown' %}tab-active{% else %}tab-idle{% endif %}">
+        Desconhecidas
+        <span class="text-[10.5px] font-bold ml-1 bg-warn-100 text-warn-700 px-1.5 py-0.5 rounded">{{ counts.unknown }}</span>
+      </a>
+    </div>
+  </div>
+
+  {# Filtros inline #}
+  <div class="px-5 py-3 border-b border-ink-100 bg-ink-50/40">
+    <form method="get" class="flex items-center gap-3">
+      <input type="hidden" name="list" value="{{ active_list }}" />
+      <input type="text" name="q" value="{{ q_plate }}" placeholder="Filtrar por placa…"
+             class="plate h-8 px-3 rounded-lg border border-ink-200 bg-white text-[13px] w-48 focus:outline-none focus:ring-2 focus:ring-brand-300" />
+      <select name="status" class="h-8 px-3 rounded-lg border border-ink-200 bg-white text-[12.5px]">
+        <option value="">Status: todos</option>
+        {% for val, label in statuses %}
+          <option value="{{ val }}" {% if q_status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="h-8 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[12.5px] font-semibold">Buscar</button>
+      <a href="?list={{ active_list }}" class="h-8 px-3 leading-8 rounded-lg border border-ink-200 text-ink-600 text-[12.5px] hover:bg-white">Limpar</a>
+    </form>
+  </div>
+
+  {# Tabela #}
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Placa</th>
+          <th class="text-left font-semibold px-3 py-2.5">Responsável</th>
+          <th class="text-left font-semibold px-3 py-2.5">Veículo</th>
+          <th class="text-left font-semibold px-3 py-2.5">Validade</th>
+          <th class="text-left font-semibold px-3 py-2.5">Status</th>
+          {% if active_list == "blacklist" %}
+          <th class="text-left font-semibold px-3 py-2.5">Risco</th>
+          {% endif %}
+          <th class="text-left font-semibold px-3 py-2.5">Cadastrado</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for p in plates %}
+        <tr class="hover:bg-ink-50/60">
+          <td class="pl-5 pr-3 py-3">
+            <span class="plate-chip plate">{{ p.plate }}</span>
+          </td>
+          <td class="px-3 py-3 text-[12.5px] text-ink-800 font-medium">{{ p.owner_label }}</td>
+          <td class="px-3 py-3 text-[12px] text-ink-600">{{ p.vehicle_label }}</td>
+          <td class="px-3 py-3 text-[12px] text-ink-600">{{ p.validity_label }}</td>
+          <td class="px-3 py-3">
+            <span class="inline-flex items-center text-[11px] font-bold uppercase tracking-wide px-1.5 py-1 rounded
+              {% if p.list_kind == 'whitelist' %}bg-ok-50 text-ok-700
+              {% elif p.list_kind == 'blacklist' %}bg-err-50 text-err-700
+              {% elif p.list_kind == 'temporary' %}bg-brand-50 text-brand-700
+              {% else %}bg-warn-50 text-warn-700{% endif %}">
+              {{ p.get_status_display }}
+            </span>
+          </td>
+          {% if active_list == "blacklist" %}
+          <td class="px-3 py-3">
+            {% with obj=plate_objects|dictsort:"id" %}
+            {# fallback risco — mostrado se disponível #}
+            {% endwith %}
+            <span class="text-ink-400 text-[11.5px]">—</span>
+          </td>
+          {% endif %}
+          <td class="px-3 py-3 text-[11.5px] text-ink-400">—</td>
+          <td class="pr-5 pl-3 py-3 text-right">
+            <a href="{% url 'lpr:plate-detail' p.id %}"
+               class="text-[11.5px] font-semibold h-7 px-2 leading-7 rounded-md hover:bg-ink-100 text-ink-600">
+              Editar
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="px-5 py-16 text-center text-ink-400 text-[13px]">
+            Nenhuma placa nesta lista.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Paginação #}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+    <div class="text-[11.5px] text-ink-500">
+      Mostrando {{ plates|length }} de {{ counts_active|intcomma }} placas
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% querystring page=page_obj.previous_page_number %}"
+           class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">← Anterior</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?{% querystring page=page_obj.next_page_number %}"
+           class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">Próxima →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

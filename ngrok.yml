@@ -1,0 +1,40 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ngrok — túneis para o media server LPR
+#
+# Iniciar todos os túneis:
+#   ngrok start --all --config ngrok.yml
+#
+# Portas abertas pelo MediaMTX (python manage.py run_media_server):
+#   8888  HLS  — player do navegador (HTTP/HTTPS)
+#   1935  RTMP — câmeras fazem push para o MediaMTX
+#   8554  RTSP — MediaMTX disponibiliza stream RTSP
+#
+# Após iniciar, copie as URLs públicas para o .env:
+#   MEDIAMTX_HLS_PUBLIC_URL=https://xxxx.ngrok-free.app
+#   MEDIAMTX_RTMP_PUBLIC_URL=rtmp://0.tcp.sa.ngrok.io:PORTA
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: "2"
+authtoken: 2caxgxSiYjSWr4aY1PYouuIgQD3_5txMhiNWLtZ7Ae2j65G2Y
+
+tunnels:
+
+  # Django app — interface web principal
+  # https://xxxx.ngrok-free.app → http://localhost:8000
+  django:
+    proto: http
+    addr: 8000
+    inspect: false
+
+  # HLS (HTTP) — player de vídeo ao vivo no navegador
+  # https://xxxx.ngrok-free.app → http://localhost:8888
+  hls:
+    proto: http
+    addr: 8888
+    inspect: false
+
+  # RTMP (TCP) — câmeras fazem push de vídeo
+  # tcp://0.tcp.sa.ngrok.io:PORTA → tcp://localhost:1935
+  rtmp:
+    proto: tcp
+    addr: 1935

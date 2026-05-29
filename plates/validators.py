@@ -10,9 +10,13 @@ from rest_framework import serializers
 
 ALLOWED_MIME_TYPES = {
     "image/jpeg": ("JPEG", ".jpg"),
-    "image/png": ("PNG", ".png"),
+    "image/png":  ("PNG",  ".png"),
     "image/webp": ("WEBP", ".webp"),
 }
+
+# Qualidade JPEG de saída para imagens externas (uploads via API).
+# Todos os formatos aceitos são normalizados para JPEG para economizar disco.
+_UPLOAD_JPEG_QUALITY = 82
 
 
 def sanitize_uploaded_image(uploaded_file) -> ContentFile:
@@ -27,27 +31,22 @@ def sanitize_uploaded_image(uploaded_file) -> ContentFile:
     if mime_type not in ALLOWED_MIME_TYPES:
         raise serializers.ValidationError("Unsupported image type.")
 
-    image_format, extension = ALLOWED_MIME_TYPES[mime_type]
-
     try:
         image = Image.open(uploaded_file)
         image.load()
     except UnidentifiedImageError as exc:
         raise serializers.ValidationError("Invalid or corrupted image.") from exc
 
-    if image_format == "JPEG" and image.mode not in {"RGB", "L"}:
+    # Normaliza para JPEG independente do formato de entrada (economia de disco).
+    # PNG/WebP com canal alpha: converte para RGB antes de codificar.
+    if image.mode not in {"RGB", "L"}:
         image = image.convert("RGB")
 
     output = io.BytesIO()
-    save_kwargs = {"format": image_format}
-    if image_format == "JPEG":
-        save_kwargs["quality"] = 90
-        save_kwargs["optimize"] = True
-
-    image.save(output, **save_kwargs)
+    image.save(output, format="JPEG", quality=_UPLOAD_JPEG_QUALITY, optimize=True)
     output.seek(0)
 
     original_stem = Path(uploaded_file.name).stem[:40] if uploaded_file.name else "upload"
-    safe_name = f"{original_stem}-{uuid.uuid4().hex}{extension}"
+    safe_name = f"{original_stem}-{uuid.uuid4().hex}.jpg"
     return ContentFile(output.read(), name=safe_name)
 

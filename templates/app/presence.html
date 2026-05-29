@@ -1,0 +1,141 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Presença de Veículos — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Operação · Presença</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Presença de Veículos</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Estado atual de cada veículo rastreado na instalação.</p>
+  </div>
+</div>
+
+{# KPIs #}
+<div class="grid grid-cols-3 gap-4">
+  <div class="bg-white rounded-xl border border-ok-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ok-600 uppercase tracking-wide">Dentro</div>
+    <div class="text-[28px] font-extrabold text-ok-700 mt-1">{{ inside_count }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ink-400 uppercase tracking-wide">Total rastreados</div>
+    <div class="text-[28px] font-extrabold text-ink-900 mt-1">{{ total_count }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-warn-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-warn-600 uppercase tracking-wide">Inconsistentes</div>
+    <div class="text-[28px] font-extrabold text-warn-700 mt-1">{{ inconsistent_count }}</div>
+  </div>
+</div>
+
+{# Filtros #}
+<form method="get" class="bg-white rounded-xl border border-ink-100 shadow-card p-4">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="sm:col-span-2">
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Placa</label>
+      <input type="text" name="plate" value="{{ q_plate }}" placeholder="ABC1D23"
+             class="plate w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Status</label>
+      <select name="status" class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px]">
+        <option value="">Todos</option>
+        {% for val, label in statuses %}
+          <option value="{{ val }}" {% if q_status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="flex gap-2 mt-3">
+    <button type="submit" class="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold">Filtrar</button>
+    <a href="{% url 'lpr:presence' %}" class="h-9 px-3 leading-9 rounded-lg border border-ink-200 text-ink-600 text-[13px] hover:bg-ink-50">Limpar</a>
+  </div>
+</form>
+
+{# Tabela #}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Placa</th>
+          <th class="text-left font-semibold px-3 py-2.5">Status</th>
+          <th class="text-left font-semibold px-3 py-2.5">Última entrada</th>
+          <th class="text-left font-semibold px-3 py-2.5">Última saída</th>
+          <th class="text-left font-semibold px-3 py-2.5">Última leitura</th>
+          <th class="text-left font-semibold px-3 py-2.5">Local</th>
+          <th class="text-left font-semibold px-3 py-2.5">Unidade</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for pres in presence_rows %}
+        <tr class="hover:bg-ink-50/60">
+          <td class="pl-5 pr-3 py-3">
+            <span class="plate-chip plate">{{ pres.normalized_plate }}</span>
+            {% if pres.plate_registry %}
+              <div class="text-[11px] text-ink-500 mt-1">{{ pres.plate_registry.owner_name|default:"" }}</div>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            {% if pres.current_status == "inside" %}
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-ok-50 text-ok-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-ok-500 pulse-dot"></span> Dentro
+              </span>
+            {% elif pres.current_status == "outside" %}
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-ink-100 text-ink-500">
+                Fora
+              </span>
+            {% elif pres.current_status == "inconsistent" %}
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-warn-50 text-warn-700">
+                Inconsistente
+              </span>
+            {% else %}
+              <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-ink-50 text-ink-400">
+                Desconhecido
+              </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-ink-600 tabular-nums">
+            {{ pres.entered_at|naturaltime|default:"—" }}
+          </td>
+          <td class="px-3 py-3 text-ink-600 tabular-nums">
+            {{ pres.exited_at|naturaltime|default:"—" }}
+          </td>
+          <td class="px-3 py-3 text-ink-600 tabular-nums">
+            {{ pres.last_seen_at|naturaltime|default:"—" }}
+          </td>
+          <td class="px-3 py-3 text-ink-600">{{ pres.location|default:"—" }}</td>
+          <td class="px-3 py-3 text-ink-600">{{ pres.tenant.name|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="px-5 py-16 text-center text-ink-400 text-[13px]">
+            Nenhum veículo rastreado para este filtro.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+    <div class="text-[11.5px] text-ink-500">
+      Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_count|intcomma }}
+    </div>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% querystring page=page_obj.previous_page_number %}"
+           class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">← Anterior</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?{% querystring page=page_obj.next_page_number %}"
+           class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">Próxima →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

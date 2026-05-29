@@ -1,0 +1,191 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Alertas — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Operação · Alertas</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Alertas</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Itens que exigem atenção ou ação do operador.</p>
+  </div>
+</div>
+
+{# KPIs #}
+<div class="grid grid-cols-2 gap-4">
+  <div class="bg-white rounded-xl border border-err-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-err-600 uppercase tracking-wide">Abertos</div>
+    <div class="text-[28px] font-extrabold text-err-700 mt-1">{{ open_count }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-err-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-err-600 uppercase tracking-wide">Críticos</div>
+    <div class="text-[28px] font-extrabold text-err-700 mt-1">{{ critical_count }}</div>
+  </div>
+</div>
+
+{# Filtros / tabs de status #}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="flex items-center gap-1 px-5 pt-4 border-b border-ink-100 -mb-px">
+    <a href="?status=open{% if q_severity %}&severity={{ q_severity }}{% endif %}{% if q_type %}&type={{ q_type }}{% endif %}"
+       class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if q_status == 'open' or not q_status %}tab-active{% else %}tab-idle{% endif %}">
+      Abertos <span class="ml-1 text-[10.5px] font-bold bg-err-100 text-err-700 px-1.5 py-0.5 rounded">{{ open_count }}</span>
+    </a>
+    <a href="?status=history{% if q_severity %}&severity={{ q_severity }}{% endif %}{% if q_type %}&type={{ q_type }}{% endif %}"
+       class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if q_status == 'history' %}tab-active{% else %}tab-idle{% endif %}">
+      Histórico
+    </a>
+    <a href="?status=all{% if q_severity %}&severity={{ q_severity }}{% endif %}{% if q_type %}&type={{ q_type }}{% endif %}"
+       class="px-3 py-2.5 text-[13px] font-semibold border-b-2 {% if q_status == 'all' %}tab-active{% else %}tab-idle{% endif %}">
+      Todos
+    </a>
+
+    <div class="ml-auto pb-2 flex items-center gap-2">
+      <form method="get">
+        <input type="hidden" name="status" value="{{ q_status|default:'open' }}" />
+        <div class="flex items-center gap-2">
+          <select name="severity" onchange="this.form.submit()"
+                  class="h-8 px-2 rounded-lg border border-ink-200 bg-ink-50 text-[12px]">
+            <option value="">Severidade</option>
+            {% for val, label in severities %}
+              <option value="{{ val }}" {% if q_severity == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <select name="type" onchange="this.form.submit()"
+                  class="h-8 px-2 rounded-lg border border-ink-200 bg-ink-50 text-[12px]">
+            <option value="">Tipo</option>
+            {% for val, label in alert_types %}
+              <option value="{{ val }}" {% if q_type == val %}selected{% endif %}>{{ alert_type_labels|default_if_none:label }}</option>
+            {% endfor %}
+          </select>
+          {% if q_severity or q_type %}
+            <a href="?status={{ q_status|default:'open' }}" class="text-[11.5px] text-ink-400 hover:text-ink-600">Limpar</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# Tabela de alertas #}
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Alerta</th>
+          <th class="text-left font-semibold px-3 py-2.5">Severidade</th>
+          <th class="text-left font-semibold px-3 py-2.5">Placa / Contexto</th>
+          <th class="text-left font-semibold px-3 py-2.5">Câmera</th>
+          <th class="text-left font-semibold px-3 py-2.5">Status</th>
+          <th class="text-left font-semibold px-3 py-2.5">Criado</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for item in alert_rows %}
+        {% with alert=item.obj row=item.row %}
+        <tr class="hover:bg-ink-50/60">
+          <td class="pl-5 pr-3 py-3">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg grid place-items-center shrink-0
+                {% if alert.severity == 'critical' %}bg-err-100 text-err-700
+                {% elif alert.severity == 'warning' %}bg-warn-100 text-warn-700
+                {% else %}bg-brand-100 text-brand-700{% endif %}">
+                {% if row.icon == "block" %}
+                  <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M5 5l14 14" stroke="currentColor" stroke-width="1.8"/></svg>
+                {% elif row.icon == "cam" %}
+                  <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><rect x="3" y="6" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M17 10l4-2v8l-4-2" stroke="currentColor" stroke-width="1.6"/></svg>
+                {% elif row.icon == "queue" %}
+                  <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><rect x="3" y="4" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="10" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="16" width="18" height="4" rx="1" stroke="currentColor" stroke-width="1.6"/></svg>
+                {% else %}
+                  <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+                {% endif %}
+              </div>
+              <div>
+                <div class="font-semibold text-ink-800">{{ item.type_label }}</div>
+                <div class="text-[11px] text-ink-400">{{ alert.get_alert_type_display }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-3">
+            <span class="inline-flex text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded
+              {% if alert.severity == 'critical' %}bg-err-100 text-err-700
+              {% elif alert.severity == 'warning' %}bg-warn-100 text-warn-700
+              {% else %}bg-brand-100 text-brand-700{% endif %}">
+              {{ row.get_severity_display }}
+            </span>
+          </td>
+          <td class="px-3 py-3">
+            {% if alert.plate %}
+              <span class="plate-chip plate">{{ alert.plate }}</span>
+            {% elif row.meta %}
+              <span class="plate-chip plate">{{ row.meta }}</span>
+            {% else %}
+              <span class="text-ink-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-ink-600">{{ alert.camera.name|default:"—" }}</td>
+          <td class="px-3 py-3">
+            {% if alert.status == "open" %}
+              <span class="inline-flex text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-err-50 text-err-700">Aberto</span>
+            {% else %}
+              <span class="inline-flex text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ok-50 text-ok-700">Resolvido</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-ink-500 tabular-nums">{{ row.created_at_human }}</td>
+          <td class="pr-5 pl-3 py-3 text-right">
+            {% if alert.status == "open" %}
+            <div class="flex items-center justify-end gap-1 flex-wrap">
+              {% if alert.alert_type == "unknown_plate_detected" and alert.access_event_id %}
+              <form method="post" action="{% url 'lpr:event-register' alert.access_event_id %}" class="inline">{% csrf_token %}
+                <input type="hidden" name="list_type" value="whitelist">
+                <button class="text-[11px] font-bold h-7 px-2 rounded-md bg-ok-600 hover:bg-ok-700 text-white">✓ WL</button>
+              </form>
+              <form method="post" action="{% url 'lpr:event-register' alert.access_event_id %}" class="inline">{% csrf_token %}
+                <input type="hidden" name="list_type" value="blacklist">
+                <button class="text-[11px] font-bold h-7 px-2 rounded-md bg-err-600 hover:bg-err-700 text-white">✕ BL</button>
+              </form>
+              {% endif %}
+            </div>
+            {% else %}
+            <div class="text-[11px] text-ink-400">
+              {% if alert.resolved_by %}por {{ alert.resolved_by.username }}{% endif %}
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr>
+          <td colspan="7" class="px-5 py-16 text-center">
+            <div class="text-ink-400 text-[13px]">
+              {% if q_status == "history" %}Nenhum alerta resolvido.{% else %}Nenhum alerta aberto. Sistema operacional.{% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Paginação #}
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+    <div class="text-[11.5px] text-ink-500">
+      Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_count|intcomma }}
+    </div>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% querystring page=page_obj.previous_page_number %}"
+           class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">← Anterior</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?{% querystring page=page_obj.next_page_number %}"
+           class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">Próxima →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

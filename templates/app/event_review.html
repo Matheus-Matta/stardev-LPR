@@ -1,0 +1,101 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Revisar Evento #{{ event.id }} — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="text-[12px] text-ink-400 font-medium">
+  <a href="{% url 'lpr:events' %}" class="hover:text-ink-700">Eventos</a>
+  <span class="mx-2">›</span>
+  <a href="{% url 'lpr:event-detail' event.id %}" class="hover:text-ink-700">Evento #{{ event.id }}</a>
+  <span class="mx-2">›</span>
+  <span class="text-ink-700">Alterar decisão</span>
+</div>
+
+<div class="max-w-xl mx-auto space-y-4">
+
+  <div>
+    <h1 class="text-[22px] font-extrabold tracking-tight text-ink-900">Alterar decisão de acesso</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Substitua a decisão automática por uma decisão manual fundamentada.</p>
+  </div>
+
+  {# Resumo do evento #}
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card p-5">
+    <div class="flex items-center gap-4">
+      {% if event.crop_image %}
+        <img src="{{ event.crop_image.url }}" class="w-20 h-14 object-cover rounded-lg shrink-0" alt="evento" />
+      {% elif event.image %}
+        <img src="{{ event.image.url }}" class="w-20 h-14 object-cover rounded-lg shrink-0" alt="evento" />
+      {% else %}
+        <div class="snap w-20 h-14 rounded-lg grid place-items-center text-[9px] font-mono shrink-0">SNAP</div>
+      {% endif %}
+      <div>
+        <span class="plate-chip plate text-[16px]">{{ event.normalized_plate|default:"—" }}</span>
+        <div class="text-[12px] text-ink-500 mt-1.5">
+          Câmera: <span class="text-ink-700 font-medium">{{ event.camera.name|default:"—" }}</span>
+          · {{ event.captured_at|naturaltime }}
+        </div>
+        <div class="mt-1.5 flex items-center gap-2">
+          <span class="text-[11.5px] text-ink-500">Decisão atual:</span>
+          {% include "app/includes/status_badge.html" with kind=event_row.decision_kind %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Mensagens #}
+  {% if messages %}
+  {% for msg in messages %}
+  <div class="px-4 py-3 rounded-lg text-[13px] font-medium
+    {% if msg.tags == 'error' %}bg-err-50 text-err-700 border border-err-100
+    {% else %}bg-ok-50 text-ok-700 border border-ok-100{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {# Formulário #}
+  <form method="post" class="bg-white rounded-xl border border-ink-100 shadow-card p-6 space-y-4">
+    {% csrf_token %}
+
+    <div>
+      <label class="block text-[12px] font-semibold text-ink-700 mb-2">
+        Nova decisão <span class="text-err-500">*</span>
+      </label>
+      <div class="grid grid-cols-2 gap-2">
+        {% for val, label in decisions %}
+        <label class="flex items-center gap-3 p-3 rounded-lg border border-ink-200 cursor-pointer hover:bg-ink-50 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+          <input type="radio" name="decision" value="{{ val }}"
+                 {% if event.decision == val %}checked{% endif %}
+                 class="accent-brand-600" />
+          <span class="text-[13px] font-medium text-ink-700">{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <label for="reason" class="block text-[12px] font-semibold text-ink-700 mb-1.5">
+        Justificativa <span class="text-err-500">*</span>
+      </label>
+      <textarea id="reason" name="reason" rows="3" required
+                placeholder="Ex: Liberação autorizada pela gerência de segurança após verificação."
+                class="w-full px-4 py-2.5 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"></textarea>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit"
+              class="h-10 px-6 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold shadow-card">
+        Confirmar alteração
+      </button>
+      <a href="{% url 'lpr:event-detail' event.id %}"
+         class="h-10 px-4 leading-10 rounded-lg border border-ink-200 text-ink-600 text-[13px] font-semibold hover:bg-ink-50">
+        Cancelar
+      </a>
+    </div>
+  </form>
+
+</div>
+
+{% endblock %}

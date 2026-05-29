@@ -14,11 +14,13 @@ Uso:
     python manage.py run_capture_loop --interval 1     # 1 captura/segundo por câmera
     python manage.py run_capture_loop --once           # uma rodada e encerra (debug)
     python manage.py run_capture_loop --camera-key abc # só uma câmera específica
+    python manage.py run_capture_loop --plate-log placas.log  # salva detecções em arquivo
 
 Variáveis de ambiente:
     CAPTURE_INTERVAL_SECONDS   segundos entre ciclos   (padrão: 2)
 """
 
+import logging
 import os
 import signal
 import sys
@@ -28,6 +30,20 @@ from django.core.management.base import BaseCommand
 
 from cameras.models import Camera
 from cameras.tasks import capture_camera_frame
+
+logger = logging.getLogger(__name__)
+
+PLATE_DETECTION_LOGGER = "lpr.detections"
+
+
+def _enable_plate_log(path: str) -> None:
+    fh = logging.FileHandler(path, encoding="utf-8")
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logging.Formatter("%(message)s"))
+    det = logging.getLogger(PLATE_DETECTION_LOGGER)
+    det.addHandler(fh)
+    det.setLevel(logging.DEBUG)
+    det.propagate = True  # também aparece no terminal
 
 
 def _env_int(key: str, default: int) -> int:
@@ -57,6 +73,12 @@ class Command(BaseCommand):
             default="",
             help="Limita a captura a uma câmera específica pelo camera_key",
         )
+        parser.add_argument(
+            "--plate-log",
+            metavar="ARQUIVO",
+            default="",
+            help="Salva detecções de placa em arquivo .log (ex: --plate-log placas.log)",
+        )
 
     def handle(self, *args, **options):
         interval = options["interval"]
@@ -66,6 +88,12 @@ class Command(BaseCommand):
         self._running = True
         signal.signal(signal.SIGTERM, self._shutdown)
         signal.signal(signal.SIGINT, self._shutdown)
+
+        if options["plate_log"]:
+            _enable_plate_log(options["plate_log"])
+            self.stdout.write(self.style.SUCCESS(
+                f"[plate-log] salvando detecções em: {options['plate_log']}"
+            ))
 
         self.stdout.write(
             self.style.HTTP_INFO(
@@ -92,7 +120,11 @@ class Command(BaseCommand):
                     f"Despachando captura para {len(camera_ids)} câmera(s)"
                 )
                 for cam_id in camera_ids:
-                    capture_camera_frame.delay(cam_id)
+                    logger.debug("[capture] dispatching camera_id=%s", cam_id)
+                    try:
+                        capture_camera_frame.delay(cam_id)
+                    except Exception as exc:
+                        logger.warning("[capture] camera_id=%s falhou: %s", cam_id, exc)
 
             if once:
                 break

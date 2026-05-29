@@ -4,12 +4,13 @@ from pathlib import Path
 
 import dj_database_url
 from django.urls import reverse_lazy
+from celery.schedules import crontab
 from kombu import Queue
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def load_env_file(path: Path) -> None:
+def load_env_file(path: Path, overwrite: bool = True) -> None:
     if not path.exists():
         return
     for raw_line in path.read_text(encoding="utf-8").splitlines():
@@ -17,9 +18,20 @@ def load_env_file(path: Path) -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", maxsplit=1)
-        os.environ[key.strip()] = value.strip().strip('"').strip("'")
+        key = key.strip()
+        if overwrite or key not in os.environ:
+            os.environ[key] = value.strip().strip('"').strip("'")
 
 
+# 1. Carrega o perfil de engine (ex: envs/.env.dev.fastalpr.cpu) sem sobrescrever vars já definidas
+_profile = os.environ.get("ENV_PROFILE_LPR", "")
+if _profile:
+    profile_path = BASE_DIR / _profile
+    if not profile_path.exists():
+        profile_path = BASE_DIR / "envs" / _profile
+    load_env_file(profile_path, overwrite=False)
+
+# 2. Carrega o .env principal — sempre tem prioridade sobre o perfil
 load_env_file(BASE_DIR / ".env")
 
 
@@ -324,6 +336,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 UPLOAD_MAX_SIZE_MB = env_int("UPLOAD_MAX_SIZE_MB", 10)
 UPLOAD_MAX_SIZE_BYTES = UPLOAD_MAX_SIZE_MB * 1024 * 1024
 EVENT_RETENTION_DAYS = env_int("EVENT_RETENTION_DAYS", 90)
+# Imagens são apagadas antes dos registros para economizar disco.
+# O arquivo PNG é deletado após IMAGE_RETENTION_HOURS; o registro (plate_text, confidence…)
+# permanece até EVENT_RETENTION_DAYS.
+# Exemplos: 4 (liberação de porta/automação), 24 (turno), 720 (30 dias, padrão).
+IMAGE_RETENTION_HOURS = env_int("IMAGE_RETENTION_HOURS", 720)
+# Qualidade JPEG das imagens capturadas pelo pipeline LPR (0–100).
+# 85 oferece boa qualidade com ~70–80% de redução vs PNG lossless.
+CAPTURE_IMAGE_QUALITY = env_int("CAPTURE_IMAGE_QUALITY", 85)
 ALERT_OCR_QUEUE_PENDING = env_int("ALERT_OCR_QUEUE_PENDING", 50)
 ALERT_CPU_PERCENT = env_int("ALERT_CPU_PERCENT", 85)
 ALERT_DISK_PERCENT = env_int("ALERT_DISK_PERCENT", 80)
@@ -411,6 +431,21 @@ CELERY_TASK_ROUTES = {
     "plates.tasks.process_plate_event": {"queue": "ocr"},
     "plates.tasks.notify_dead_letter": {"queue": "dead"},
     "plates.tasks.reprocess_plate_event": {"queue": "ocr"},
+    "plates.tasks.purge_plate_images": {"queue": "default"},
+    "plates.tasks.purge_old_plate_events": {"queue": "default"},
+}
+
+CELERY_BEAT_SCHEDULE = {
+    # Apaga arquivos PNG a cada hora — garante que retenções curtas (ex: 4h) funcionem.
+    "purge-plate-images-hourly": {
+        "task": "plates.tasks.purge_plate_images",
+        "schedule": crontab(minute=0),
+    },
+    # Apaga registros antigos (e qualquer imagem restante) semanalmente.
+    "purge-old-plate-events-weekly": {
+        "task": "plates.tasks.purge_old_plate_events",
+        "schedule": crontab(hour=4, minute=0, day_of_week=0),
+    },
 }
 
 TASK_TIME_LIMIT_OCR = env_int("TASK_TIME_LIMIT_OCR", 120)
@@ -420,10 +455,34 @@ RTSP_READ_TIMEOUT = env_int("RTSP_READ_TIMEOUT", 30)
 
 MEDIAMTX_HOST = os.getenv("MEDIAMTX_HOST", "localhost")
 MEDIAMTX_RTSP_PORT = env_int("MEDIAMTX_RTSP_PORT", 8554)
+MEDIAMTX_HLS_PORT = env_int("MEDIAMTX_HLS_PORT", 8888)
+MEDIAMTX_API_PORT = env_int("MEDIAMTX_API_PORT", 9997)
+
+# URLs públicas via túnel (ngrok ou similar).
+# Quando definidas, substituem host:porta locais no player e nas instruções de câmera.
+# Exemplos:
+#   MEDIAMTX_HLS_PUBLIC_URL=https://xxxx.ngrok-free.app
+#   MEDIAMTX_RTMP_PUBLIC_URL=rtmp://0.tcp.sa.ngrok.io:12345
+#   MEDIAMTX_RTSP_PUBLIC_URL=rtsp://0.tcp.sa.ngrok.io:12346
+MEDIAMTX_HLS_PUBLIC_URL    = os.getenv("MEDIAMTX_HLS_PUBLIC_URL", "").rstrip("/")
+MEDIAMTX_RTMP_PUBLIC_URL   = os.getenv("MEDIAMTX_RTMP_PUBLIC_URL", "").rstrip("/")
+MEDIAMTX_RTSP_PUBLIC_URL   = os.getenv("MEDIAMTX_RTSP_PUBLIC_URL", "").rstrip("/")
+
 CAPTURE_INTERVAL_SECONDS = env_int("CAPTURE_INTERVAL_SECONDS", 2)
 
 YOLO_MODEL_VERSION = os.getenv("YOLO_MODEL_VERSION", "lpr-v1.pt")
 OCR_ENGINE_VERSION = os.getenv("OCR_ENGINE_VERSION", "stub-0.1")
+
+# ── LPR Engine ────────────────────────────────────────────────────────────────
+# Seleciona a engine de leitura de placas.
+#   mock       — simulado, apenas DEV (bloqueado em APP_ENV=prod)
+#   fast_alpr  — ONNX Runtime CPU/GPU (padrão)
+#   deepstream — NVIDIA DeepStream (Sprint 5)
+APP_ENV     = os.getenv("APP_ENV", ENVIRONMENT)   # dev | staging | prod
+LPR_ENGINE  = os.getenv("LPR_ENGINE", "fast_alpr")
+LPR_MODE    = os.getenv("LPR_MODE", "real")        # real | mock
+LPR_DEVICE  = os.getenv("LPR_DEVICE", "cpu")       # cpu | gpu
+LPR_ALLOW_FALLBACK = env_bool("LPR_ALLOW_FALLBACK", True)
 DEAD_LETTER_WEBHOOK_URL = os.getenv("DEAD_LETTER_WEBHOOK_URL", "")
 FIELD_ENCRYPTION_KEY = os.getenv("FIELD_ENCRYPTION_KEY", SECRET_KEY)
 
@@ -452,6 +511,20 @@ LOGGING = {
     "root": {
         "handlers": ["console"],
         "level": os.getenv("LOG_LEVEL", "INFO"),
+    },
+    "loggers": {
+        "cameras": {
+            "level": os.getenv("LPR_DEBUG_LOG_LEVEL", "INFO"),
+            "propagate": True,
+        },
+        "common": {
+            "level": os.getenv("LPR_DEBUG_LOG_LEVEL", "INFO"),
+            "propagate": True,
+        },
+        "plates": {
+            "level": os.getenv("LPR_DEBUG_LOG_LEVEL", "INFO"),
+            "propagate": True,
+        },
     },
 }
 

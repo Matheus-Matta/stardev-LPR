@@ -1,16 +1,18 @@
 import logging
 import traceback
+from datetime import timedelta
 
 import requests
 from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
 from django.conf import settings
+from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
 
 from common.models import DeadLetterTask
 from common.tasks import dispatch_webhooks
-from plates.models import PlateEvent
+from plates.models import AccessEvent, PlateEvent
 from plates.services import run_ocr_pipeline
 
 logger = logging.getLogger(__name__)
@@ -180,3 +182,72 @@ def _finalize_linked_access_event(event_id: int, result: dict) -> None:
     from plates.access import finalize_access_event
 
     finalize_access_event(access_event)
+
+
+def _delete_image_field(instance, field_name: str) -> bool:
+    """Apaga o arquivo físico e limpa o campo. Retorna True se havia arquivo."""
+    field = getattr(instance, field_name)
+    if not field:
+        return False
+    try:
+        default_storage.delete(field.name)
+    except Exception as exc:
+        logger.warning("Falha ao deletar arquivo %s: %s", field.name, exc)
+    type(instance).objects.filter(pk=instance.pk).update(**{field_name: ""})
+    return True
+
+
+@shared_task(queue="default")
+def purge_plate_images() -> dict:
+    """
+    Apaga arquivos PNG de PlateEvent e AccessEvent mais antigos que IMAGE_RETENTION_DAYS.
+    O registro permanece intacto — só o arquivo é removido.
+    """
+    cutoff = timezone.now() - timedelta(hours=settings.IMAGE_RETENTION_HOURS)
+
+    plate_deleted = 0
+    for ev in PlateEvent.objects.filter(captured_at__lt=cutoff).exclude(image="").only("id", "image").iterator(chunk_size=500):
+        if _delete_image_field(ev, "image"):
+            plate_deleted += 1
+
+    access_image_deleted = 0
+    access_crop_deleted = 0
+    for ev in AccessEvent.objects.filter(captured_at__lt=cutoff).exclude(image="", crop_image="").only("id", "image", "crop_image").iterator(chunk_size=500):
+        if _delete_image_field(ev, "image"):
+            access_image_deleted += 1
+        if _delete_image_field(ev, "crop_image"):
+            access_crop_deleted += 1
+
+    logger.info(
+        "[purge_images] PlateEvent=%d  AccessEvent.image=%d  AccessEvent.crop=%d  cutoff=%s",
+        plate_deleted, access_image_deleted, access_crop_deleted, cutoff.date(),
+    )
+    return {
+        "plate_images": plate_deleted,
+        "access_images": access_image_deleted,
+        "access_crops": access_crop_deleted,
+    }
+
+
+@shared_task(queue="default")
+def purge_old_plate_events() -> dict:
+    """
+    Apaga registros de PlateEvent mais antigos que EVENT_RETENTION_DAYS.
+    Qualquer imagem restante é removida do storage antes de deletar o registro.
+    """
+    cutoff = timezone.now() - timedelta(days=settings.EVENT_RETENTION_DAYS)
+    qs = PlateEvent.objects.filter(captured_at__lt=cutoff)
+
+    # Garante remoção dos arquivos antes do .delete() (o ORM não faz isso automaticamente)
+    files_deleted = 0
+    for ev in qs.exclude(image="").only("id", "image").iterator(chunk_size=500):
+        if _delete_image_field(ev, "image"):
+            files_deleted += 1
+
+    _, breakdown = qs.delete()
+    records_deleted = breakdown.get("plates.PlateEvent", 0)
+    logger.info(
+        "[purge_events] registros=%d  arquivos=%d  cutoff=%s",
+        records_deleted, files_deleted, cutoff.date(),
+    )
+    return {"records_deleted": records_deleted, "files_deleted": files_deleted}

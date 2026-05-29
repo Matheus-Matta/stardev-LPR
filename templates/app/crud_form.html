@@ -1,0 +1,70 @@
+{% extends "app/base.html" %}
+
+{% block title %}{{ form_title }} — starLPR{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-5">
+
+  <div>
+    <a href="{{ cancel_url }}" class="text-[12px] text-ink-400 font-medium hover:text-ink-700">
+      ← Voltar
+    </a>
+    <h1 class="text-[22px] font-extrabold tracking-tight text-ink-900 mt-1">{{ form_title }}</h1>
+  </div>
+
+  {% if messages %}
+  {% for msg in messages %}
+  <div class="px-4 py-3 rounded-lg {% if msg.tags == 'error' %}bg-err-50 border border-err-200 text-err-700{% else %}bg-ok-50 border border-ok-100 text-ok-700{% endif %} text-[12.5px] font-medium">
+    {{ msg }}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card p-6">
+    <form method="post" novalidate class="space-y-5">
+      {% csrf_token %}
+
+      {% for field in form %}
+      <div>
+        {% if field.field.widget.input_type == 'checkbox' %}
+        <label class="flex items-center gap-3 cursor-pointer">
+          {{ field }}
+          <span class="text-[13px] font-medium text-ink-700">{{ field.label }}</span>
+        </label>
+        {% else %}
+        <label for="{{ field.id_for_label }}" class="block text-[12px] font-semibold text-ink-700 mb-1.5">
+          {{ field.label }}
+          {% if field.field.required %}<span class="text-err-500 ml-0.5">*</span>{% endif %}
+        </label>
+        {{ field }}
+        {% endif %}
+        {% if field.help_text %}
+        <p class="mt-1 text-[11.5px] text-ink-400">{{ field.help_text }}</p>
+        {% endif %}
+        {% for error in field.errors %}
+        <p class="mt-1 text-[11.5px] text-err-600 font-medium">{{ error }}</p>
+        {% endfor %}
+      </div>
+      {% endfor %}
+
+      {% if form.non_field_errors %}
+      <div class="px-4 py-3 rounded-lg bg-err-50 border border-err-200 text-[12.5px] text-err-700">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="flex items-center gap-3 pt-2 border-t border-ink-100">
+        <button type="submit"
+                class="h-10 px-6 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold transition">
+          Salvar
+        </button>
+        <a href="{{ cancel_url }}"
+           class="h-10 px-4 leading-10 rounded-lg border border-ink-200 text-ink-600 text-[13px] font-semibold hover:bg-ink-50">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Busca de Placa — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="max-w-3xl mx-auto space-y-6">
+
+  <div>
+    <h1 class="text-[22px] font-extrabold tracking-tight text-ink-900">Busca de placa</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Pesquise por uma placa em cadastros e histórico de eventos.</p>
+  </div>
+
+  {# Campo de busca grande #}
+  <form method="get" action="{% url 'lpr:plate-search' %}"
+        class="flex items-center gap-2 bg-white rounded-xl border border-ink-200 shadow-card px-4 py-3">
+    <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5 text-ink-400 shrink-0">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M21 21l-4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    <input id="plateSearch" name="q" type="text" autofocus value="{{ q }}"
+           placeholder="ABC1D23 — busque por placa completa ou parcial"
+           class="plate flex-1 outline-none text-[16px] font-semibold tracking-widest uppercase placeholder:text-ink-300 placeholder:font-normal placeholder:tracking-normal placeholder:text-[14px]" />
+    {% if q %}
+    <a href="{% url 'lpr:plate-search' %}" class="text-[12px] text-ink-400 hover:text-ink-700 shrink-0">Limpar</a>
+    {% endif %}
+    <button type="submit" class="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold shrink-0">Buscar</button>
+  </form>
+
+  {% if q %}
+
+    {% if not has_results %}
+    <div class="bg-ink-50 rounded-xl border border-ink-200 px-5 py-12 text-center">
+      <div class="text-ink-500 text-[14px] font-semibold">Nenhum resultado para "<span class="plate">{{ q }}</span>"</div>
+      <p class="text-[12.5px] text-ink-400 mt-1">Verifique se a placa está correta. Busca parcial é suportada.</p>
+    </div>
+    {% endif %}
+
+    {# Resultados de cadastro #}
+    {% if registry_results %}
+    <div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+      <div class="px-5 py-3 border-b border-ink-100 flex items-center justify-between">
+        <h2 class="text-[14px] font-bold text-ink-900">Cadastros</h2>
+        <span class="text-[11.5px] text-ink-400">{{ registry_results|length }} resultado{{ registry_results|length|pluralize }}</span>
+      </div>
+      <div class="divide-y divide-ink-100">
+        {% for reg in registry_results %}
+        <div class="px-5 py-3 flex items-center gap-4 hover:bg-ink-50/60">
+          <span class="plate-chip plate text-[14px]">{{ reg.plate }}</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded
+                {% if reg.list_type == 'whitelist' %}bg-ok-50 text-ok-700
+                {% elif reg.list_type == 'blacklist' %}bg-err-50 text-err-700
+                {% else %}bg-warn-50 text-warn-700{% endif %}">
+                {{ reg.list_type }}
+              </span>
+              {% if reg.status != "active" %}
+              <span class="text-[10.5px] text-ink-400 uppercase font-semibold">{{ reg.get_status_display }}</span>
+              {% endif %}
+            </div>
+            <div class="text-[12px] text-ink-500 mt-0.5">
+              {{ reg.owner_name|default:"Sem responsável" }}
+              {% if reg.tenant %} · {{ reg.tenant.name }}{% endif %}
+            </div>
+          </div>
+          <a href="{% url 'lpr:plate-detail' reg.id %}"
+             class="text-[11.5px] font-semibold h-7 px-2 leading-7 rounded-md hover:bg-ink-100 text-ink-600 shrink-0">
+            Ver cadastro
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Resultados de eventos #}
+    {% if event_results %}
+    <div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+      <div class="px-5 py-3 border-b border-ink-100 flex items-center justify-between">
+        <h2 class="text-[14px] font-bold text-ink-900">Eventos recentes</h2>
+        <span class="text-[11.5px] text-ink-400">{{ event_results|length }} resultado{{ event_results|length|pluralize }}</span>
+      </div>
+      <div class="overflow-x-auto scroll-soft">
+        <table class="w-full text-[12.5px]">
+          <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+            <tr>
+              <th class="text-left font-semibold pl-5 pr-3 py-2.5">Placa</th>
+              <th class="text-left font-semibold px-3 py-2.5">Tipo</th>
+              <th class="text-left font-semibold px-3 py-2.5">Câmera</th>
+              <th class="text-left font-semibold px-3 py-2.5">Decisão</th>
+              <th class="text-right font-semibold pr-5 pl-3 py-2.5">Horário</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ink-100">
+            {% for ev in event_results %}
+            <tr class="hover:bg-ink-50/60">
+              <td class="pl-5 pr-3 py-3"><span class="plate-chip plate">{{ ev.plate }}</span></td>
+              <td class="px-3 py-3">
+                <span class="text-[12px] font-semibold {% if ev.direction == 'in' %}text-ok-700{% else %}text-ink-700{% endif %}">
+                  {% if ev.direction == "in" %}↗ Entrada{% else %}↙ Saída{% endif %}
+                </span>
+              </td>
+              <td class="px-3 py-3 text-ink-600">{{ ev.camera_name }}</td>
+              <td class="px-3 py-3">{% include "app/includes/status_badge.html" with kind=ev.decision_kind %}</td>
+              <td class="pr-5 pl-3 py-3 text-right text-ink-400 tabular-nums">{{ ev.created_at|naturaltime }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-5 py-3 border-t border-ink-100">
+        <a href="{% url 'lpr:events' %}?plate={{ q }}"
+           class="text-[12px] font-semibold text-brand-700 hover:underline">
+          Ver todos os eventos desta placa →
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+  {% else %}
+  {# Estado inicial — sem busca #}
+  <div class="text-center py-8 text-ink-400 text-[13px]">
+    Digite uma placa no campo acima para buscar.
+    <div class="mt-2 text-[11.5px] text-ink-300">Atalho: <kbd class="bg-white border border-ink-200 rounded px-1.5 py-0.5 text-ink-500">⌘K</kbd></div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Configurações — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Plataforma · Configurações</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Configurações do Sistema</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Estado atual da plataforma, modelos IA e configurações operacionais.</p>
+  </div>
+</div>
+
+{# Modo de operação #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ink-400 uppercase tracking-wide mb-2">Ambiente</div>
+    {% if django_debug %}
+      <span class="inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 border border-brand-200">
+        <span class="w-2 h-2 rounded-full bg-brand-500"></span> Desenvolvimento
+      </span>
+    {% else %}
+      <span class="inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-lg bg-ok-50 text-ok-700 border border-ok-200">
+        <span class="w-2 h-2 rounded-full bg-ok-500 pulse-dot"></span> Produção
+      </span>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ink-400 uppercase tracking-wide mb-2">Celery</div>
+    {% if celery_eager %}
+      <span class="inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 border border-brand-200">
+        Modo eager (sync)
+      </span>
+    {% else %}
+      <span class="inline-flex items-center gap-1.5 text-[13px] font-bold px-3 py-1.5 rounded-lg bg-ok-50 text-ok-700 border border-ok-200">
+        <span class="w-2 h-2 rounded-full bg-ok-500 pulse-dot"></span> Worker ativo
+      </span>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-xl border {% if dlq_pending > 0 %}border-warn-200{% else %}border-ink-100{% endif %} shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold {% if dlq_pending > 0 %}text-warn-600{% else %}text-ink-400{% endif %} uppercase tracking-wide mb-2">
+      Dead Letter Queue
+    </div>
+    <div class="flex items-baseline gap-2">
+      <span class="text-[28px] font-extrabold {% if dlq_pending > 0 %}text-warn-700{% else %}text-ink-900{% endif %}">{{ dlq_pending }}</span>
+      <span class="text-[12px] text-ink-400">pendente{{ dlq_pending|pluralize }}</span>
+    </div>
+  </div>
+</div>
+
+{# Modelos de IA #}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="px-5 py-4 border-b border-ink-100">
+    <h2 class="text-[15px] font-bold text-ink-900">Modelos de IA ativos</h2>
+    <p class="text-[12px] text-ink-400 mt-0.5">Artefatos YOLO (detecção) e OCR (leitura de placa) promovidos para produção.</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-ink-100">
+    {# YOLO #}
+    <div class="px-5 py-5">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-9 h-9 rounded-lg bg-ink-900 text-white grid place-items-center">
+          <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5"><rect x="3" y="10" width="18" height="7" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 10 L7 6 H17 L19 10" stroke="currentColor" stroke-width="1.6"/></svg>
+        </div>
+        <div>
+          <div class="text-[13px] font-bold text-ink-900">Detecção YOLO</div>
+          <div class="text-[11px] text-ink-400">Localização das placas no frame</div>
+        </div>
+      </div>
+      {% if yolo_meta %}
+        <div class="space-y-2 text-[12.5px]">
+          <div class="flex justify-between">
+            <span class="text-ink-500">Versão</span>
+            <span class="font-mono text-ink-800">{{ yolo_meta.version|default:"—" }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-ink-500">URI</span>
+            <span class="font-mono text-ink-600 text-[11px] truncate max-w-xs">{{ yolo_meta.storage_uri|default:"—" }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-ink-500">Promovido em</span>
+            <span class="text-ink-700">{{ yolo_meta.promoted_at|date:"d/m/Y"|default:"—" }}</span>
+          </div>
+        </div>
+      {% else %}
+        <div class="text-[12.5px] text-ink-400">Nenhum modelo YOLO ativo.</div>
+      {% endif %}
+    </div>
+
+    {# OCR #}
+    <div class="px-5 py-5">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-9 h-9 rounded-lg bg-brand-600 text-white grid place-items-center">
+          <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5"><path d="M9 11H3v4h6M15 11h6v4h-6M9 7h6v10H9z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="text-[13px] font-bold text-ink-900">OCR</div>
+          <div class="text-[11px] text-ink-400">Leitura do texto da placa</div>
+        </div>
+      </div>
+      {% if ocr_meta %}
+        <div class="space-y-2 text-[12.5px]">
+          <div class="flex justify-between">
+            <span class="text-ink-500">Versão</span>
+            <span class="font-mono text-ink-800">{{ ocr_meta.version|default:"—" }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-ink-500">URI</span>
+            <span class="font-mono text-ink-600 text-[11px] truncate max-w-xs">{{ ocr_meta.storage_uri|default:"—" }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-ink-500">Promovido em</span>
+            <span class="text-ink-700">{{ ocr_meta.promoted_at|date:"d/m/Y"|default:"—" }}</span>
+          </div>
+        </div>
+      {% else %}
+        <div class="text-[12.5px] text-ink-400">Nenhum modelo OCR ativo.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{# Links rápidos #}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card p-5">
+  <h3 class="text-[14px] font-bold text-ink-900 mb-4">Atalhos</h3>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <a href="/health/" target="_blank"
+       class="flex flex-col items-center gap-2 p-4 rounded-lg border border-ink-200 hover:bg-ink-50 text-center">
+      <svg viewBox="0 0 24 24" fill="none" class="w-6 h-6 text-ok-600"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="text-[12px] font-semibold text-ink-700">Health Check</span>
+    </a>
+    <a href="{% url 'lpr:audit' %}"
+       class="flex flex-col items-center gap-2 p-4 rounded-lg border border-ink-200 hover:bg-ink-50 text-center">
+      <svg viewBox="0 0 24 24" fill="none" class="w-6 h-6 text-ink-600"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="1.6"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="1.6"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span class="text-[12px] font-semibold text-ink-700">Log de Auditoria</span>
+    </a>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Usuários — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Cadastros · Usuários</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Usuários</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Gestão de usuários e acessos por tenant.</p>
+  </div>
+  <a href="{% url 'lpr:user-create' %}"
+     class="flex items-center gap-2 h-9 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[12.5px] font-semibold shadow-card">
+    <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Novo usuário
+  </a>
+</div>
+
+{# Filtros #}
+<form method="get" class="bg-white rounded-xl border border-ink-100 shadow-card p-4 flex items-end gap-3">
+  <div class="flex-1">
+    <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Buscar</label>
+    <input type="text" name="q" value="{{ q }}" placeholder="Username ou e-mail…"
+           class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+  </div>
+  <button type="submit" class="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold">Buscar</button>
+  {% if q %}<a href="{% url 'lpr:users' %}" class="h-9 px-3 leading-9 rounded-lg border border-ink-200 text-ink-600 text-[13px] hover:bg-ink-50">Limpar</a>{% endif %}
+</form>
+
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Usuário</th>
+          <th class="text-left font-semibold px-3 py-2.5">E-mail</th>
+          <th class="text-left font-semibold px-3 py-2.5">Empresa (admin)</th>
+          <th class="text-left font-semibold px-3 py-2.5">Acessos</th>
+          <th class="text-left font-semibold px-3 py-2.5">Status</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for row in user_rows %}
+        {% with user=row.obj %}
+        <tr class="hover:bg-ink-50/60">
+          <td class="pl-5 pr-3 py-3">
+            <div class="flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white grid place-items-center text-[11px] font-bold shrink-0">
+                {{ user.username|slice:":2"|upper }}
+              </span>
+              <div>
+                <div class="font-semibold text-ink-800">{{ user.get_full_name|default:user.username }}</div>
+                <div class="text-[11px] text-ink-400">{{ user.username }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-3 text-ink-600">{{ user.email|default:"—" }}</td>
+          <td class="px-3 py-3 text-ink-600">
+            {% if row.profile and row.profile.is_admin and row.profile.business %}
+              <div>{{ row.profile.business.name }}</div>
+              <span class="text-[10.5px] text-brand-700 font-semibold">Admin</span>
+            {% elif user.is_superuser %}
+              <span class="text-[10.5px] font-bold uppercase text-ink-500">Superadmin</span>
+            {% else %}
+              <span class="text-ink-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            {% for acc in row.accesses %}
+              <div class="text-[11px] text-ink-600">{{ acc.tenant.name|default:"All tenants" }} · <span class="font-semibold">{{ acc.role }}</span></div>
+            {% empty %}
+              <span class="text-ink-400">—</span>
+            {% endfor %}
+          </td>
+          <td class="px-3 py-3">
+            {% if user.is_active %}
+              <span class="text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ok-50 text-ok-700">Ativo</span>
+            {% else %}
+              <span class="text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-err-50 text-err-700">Inativo</span>
+            {% endif %}
+          </td>
+          <td class="pr-5 pl-3 py-3 text-right">
+            <a href="{% url 'lpr:user-edit' user.id %}"
+               class="text-[11.5px] font-semibold h-7 px-2 leading-7 rounded-md hover:bg-ink-100 text-ink-600">
+              Editar
+            </a>
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr>
+          <td colspan="6" class="px-5 py-16 text-center text-ink-400 text-[13px]">Nenhum usuário encontrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+    <div class="text-[11.5px] text-ink-500">{{ total_count|intcomma }} usuário{{ total_count|pluralize }}</div>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% querystring page=page_obj.previous_page_number %}" class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">← Anterior</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?{% querystring page=page_obj.next_page_number %}" class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">Próxima →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

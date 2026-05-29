@@ -10,24 +10,30 @@
     sbToggle.addEventListener('click', () => appRoot.classList.toggle('sb-collapsed'));
   }
 
-  // --- Toast utilitário: window.toast(msg, duration?) ---
-  const toastEl  = document.getElementById('toast');
-  const toastMsg = document.getElementById('toastMsg');
-  let toastTimer;
-  window.toast = function (msg, duration = 2200) {
-    if (!toastEl) return;
-    toastMsg.textContent = msg;
-    toastEl.classList.remove('opacity-0', 'translate-y-2');
-    toastEl.classList.add('opacity-100', 'translate-y-0');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toastEl.classList.add('opacity-0', 'translate-y-2');
-      toastEl.classList.remove('opacity-100', 'translate-y-0');
-    }, duration);
-  };
+  // --- Toast legado: window.toast(msg) ---
+  // A versão colorida (window.lprToast) é definida no inline script do base.html.
+  // Este shim garante que código antigo que chame window.toast() continue funcionando
+  // mesmo antes do inline script rodar (improvável, mas seguro).
+  if (!window.toast) {
+    const toastEl  = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    let toastTimer;
+    window.toast = function (msg, duration) {
+      duration = duration || 2200;
+      if (!toastEl) return;
+      toastMsg.textContent = msg;
+      toastEl.classList.remove('opacity-0', 'translate-y-2');
+      toastEl.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () {
+        toastEl.classList.add('opacity-0', 'translate-y-2');
+        toastEl.classList.remove('opacity-100', 'translate-y-0');
+      }, duration);
+    };
+  }
 
   // --- ⌘K / Ctrl+K → foco na busca de placa ---
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', function (e) {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       const search = document.getElementById('plateSearch');
@@ -35,18 +41,7 @@
     }
   });
 
-  // --- Live ticker (loop contínuo) ---
-  const ticker = document.getElementById('ticker');
-  if (ticker && ticker.children.length > 0) {
-    ticker.innerHTML += ticker.innerHTML; // duplica para loop suave
-    let offsetX = 0;
-    function animateTicker() {
-      offsetX -= 0.35;
-      const half = ticker.scrollWidth / 2;
-      if (Math.abs(offsetX) >= half) offsetX = 0;
-      ticker.style.transform = `translateX(${offsetX}px)`;
-      requestAnimationFrame(animateTicker);
-    }
-    requestAnimationFrame(animateTicker);
-  }
+  // Nota: o ticker ao vivo agora é gerenciado pelo LPRLive (inline script em
+  // base.html) que o atualiza via polling. startTickerAnim() é chamado lá.
+
 })();

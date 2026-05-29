@@ -1,0 +1,98 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Importar Placas CSV — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto space-y-4">
+
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">
+      <a href="{% url 'lpr:plates' %}" class="hover:text-ink-700">Placas</a>
+      <span class="mx-2">›</span>
+      Importar CSV
+    </div>
+    <h1 class="text-[22px] font-extrabold tracking-tight text-ink-900 mt-1">Importar Placas via CSV</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Carregue em massa whitelist ou blacklist a partir de um arquivo CSV.</p>
+  </div>
+
+  {# Formato esperado #}
+  <div class="bg-ink-50 rounded-xl border border-ink-200 p-5">
+    <h3 class="text-[13px] font-bold text-ink-700 mb-2">Formato esperado</h3>
+    <pre class="text-[11.5px] font-mono text-ink-600 overflow-x-auto">plate,list_type,owner_name,owner_document,vehicle_model,vehicle_color,valid_until,block_reason,risk_level
+ABC1D23,whitelist,João Silva,12345678900,Toyota Corolla,Prata,2026-12-31,,
+ZZZ9Z99,blacklist,,,,,, Restrição interna,high</pre>
+    <ul class="mt-3 space-y-1 text-[12px] text-ink-500">
+      <li>• <strong class="text-ink-700">plate</strong>: obrigatório. Formato Mercosul ou antigo.</li>
+      <li>• <strong class="text-ink-700">list_type</strong>: obrigatório. <code>whitelist</code>, <code>blacklist</code> ou <code>unknown</code>.</li>
+      <li>• Os demais campos são opcionais.</li>
+      <li>• <strong class="text-ink-700">valid_until</strong>: formato <code>YYYY-MM-DD</code>. Deixe vazio para sem validade.</li>
+      <li>• <strong class="text-ink-700">risk_level</strong>: <code>low</code>, <code>medium</code>, <code>high</code>, <code>critical</code>. Usado em blacklist.</li>
+    </ul>
+  </div>
+
+  {# Formulário (funcionalidade a implementar) #}
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card p-6 space-y-4">
+    <div class="bg-brand-50 border border-brand-200 rounded-lg px-4 py-3 text-[12.5px] text-brand-700">
+      <strong>Nota:</strong> A importação em massa está disponível via API ou admin Django.
+      Esta interface de upload será habilitada em breve.
+    </div>
+
+    <div>
+      <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Tenant de destino</label>
+      <select class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px]" disabled>
+        <option value="">Selecione o tenant…</option>
+        {% for t in tenants %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-[12px] font-semibold text-ink-700 mb-1.5">Arquivo CSV</label>
+      <div class="border-2 border-dashed border-ink-200 rounded-lg p-8 text-center bg-ink-50/40">
+        <svg viewBox="0 0 24 24" fill="none" class="w-10 h-10 text-ink-300 mx-auto mb-2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="text-[13px] text-ink-500">Arraste o arquivo aqui ou clique para selecionar</div>
+        <div class="text-[11.5px] text-ink-400 mt-1">CSV, máx. 10MB</div>
+        <input type="file" accept=".csv" disabled class="mt-3 text-[12px]" />
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button disabled
+              class="h-10 px-6 rounded-lg bg-brand-200 text-brand-400 text-[13px] font-semibold cursor-not-allowed">
+        Importar (em breve)
+      </button>
+      <a href="{% url 'lpr:plates' %}"
+         class="h-10 px-4 leading-10 rounded-lg border border-ink-200 text-ink-600 text-[13px] font-semibold hover:bg-ink-50">
+        Cancelar
+      </a>
+    </div>
+  </div>
+
+  {# Alternativa via API #}
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card p-5">
+    <h3 class="text-[13px] font-bold text-ink-900 mb-2">Importar via API</h3>
+    <p class="text-[12.5px] text-ink-500 mb-3">Use a API REST para cadastrar placas em massa programaticamente.</p>
+    <pre class="text-[11.5px] font-mono text-ink-600 bg-ink-50 rounded-lg p-4 overflow-x-auto">POST /api/v1/plates/registry/
+Authorization: Bearer &lt;token&gt;
+Content-Type: application/json
+
+{
+  "tenant": 1,
+  "plate": "ABC1D23",
+  "list_type": "whitelist",
+  "owner_name": "João Silva"
+}</pre>
+    <a href="{% url 'lpr:plate-create' %}"
+       class="mt-3 inline-block text-[12px] font-semibold text-brand-700 hover:underline">
+      Ou cadastre individualmente →
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}

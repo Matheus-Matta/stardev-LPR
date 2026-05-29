@@ -1,0 +1,122 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}LGPD & Privacidade — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Plataforma · LGPD</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">LGPD & Privacidade</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Conformidade com a Lei Geral de Proteção de Dados.</p>
+  </div>
+</div>
+
+{% if has_lgpd_models %}
+
+{# KPIs #}
+<div class="grid grid-cols-3 gap-4">
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ink-400 uppercase tracking-wide">ROPT registrados</div>
+    <div class="text-[28px] font-extrabold text-ink-900 mt-1">{{ ropt_count }}</div>
+  </div>
+  <div class="bg-white rounded-xl border {% if open_requests > 0 %}border-warn-100{% else %}border-ok-100{% endif %} shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold {% if open_requests > 0 %}text-warn-600{% else %}text-ok-600{% endif %} uppercase tracking-wide">
+      Solicitações abertas
+    </div>
+    <div class="text-[28px] font-extrabold {% if open_requests > 0 %}text-warn-700{% else %}text-ok-700{% endif %} mt-1">{{ open_requests }}</div>
+  </div>
+  <div class="bg-white rounded-xl border {% if open_incidents > 0 %}border-err-100{% else %}border-ok-100{% endif %} shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold {% if open_incidents > 0 %}text-err-600{% else %}text-ok-600{% endif %} uppercase tracking-wide">
+      Incidentes abertos
+    </div>
+    <div class="text-[28px] font-extrabold {% if open_incidents > 0 %}text-err-700{% else %}text-ok-700{% endif %} mt-1">{{ open_incidents }}</div>
+  </div>
+</div>
+
+{# Cards de acesso rápido #}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card p-5">
+    <div class="w-10 h-10 rounded-lg bg-brand-50 text-brand-700 grid place-items-center mb-3">
+      <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h3 class="text-[14px] font-bold text-ink-900">ROPT</h3>
+    <p class="text-[12px] text-ink-500 mt-1">Registro de Operações de Tratamento de Dados Pessoais.</p>
+    <p class="mt-3 text-[12px] text-ink-400">Gerenciado pelo administrador do sistema.</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card p-5">
+    <div class="w-10 h-10 rounded-lg bg-warn-50 text-warn-700 grid place-items-center mb-3">
+      <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h3 class="text-[14px] font-bold text-ink-900">Solicitações de Titulares</h3>
+    <p class="text-[12px] text-ink-500 mt-1">Pedidos de acesso, correção, exclusão e oposição de dados.</p>
+    <p class="mt-3 text-[12px] text-ink-400">Gerenciado pelo administrador do sistema.</p>
+  </div>
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card p-5">
+    <div class="w-10 h-10 rounded-lg bg-err-50 text-err-700 grid place-items-center mb-3">
+      <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <h3 class="text-[14px] font-bold text-ink-900">Incidentes de Segurança</h3>
+    <p class="text-[12px] text-ink-500 mt-1">Controle e notificação de incidentes ANPD.</p>
+    <p class="mt-3 text-[12px] text-ink-400">Gerenciado pelo administrador do sistema.</p>
+  </div>
+
+</div>
+
+{% else %}
+
+<div class="bg-warn-50 border border-warn-200 rounded-xl p-6 text-center">
+  <div class="text-warn-700 font-semibold text-[14px] mb-1">Módulo LGPD não configurado</div>
+  <p class="text-[13px] text-warn-600">Os models de LGPD (DataProcessingRecord, DataSubjectRequest, SecurityIncident) não foram detectados.</p>
+</div>
+
+{% endif %}
+
+{# Princípios LGPD #}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card p-6">
+  <h3 class="text-[14px] font-bold text-ink-900 mb-4">Princípios aplicados neste sistema</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[12.5px]">
+    <div class="flex gap-3">
+      <div class="w-6 h-6 rounded-full bg-ok-100 text-ok-700 grid place-items-center shrink-0 mt-0.5">
+        <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div class="font-semibold text-ink-800">Minimização de dados</div>
+        <div class="text-ink-500">Coletamos apenas placa, imagem e timestamp, estritamente necessários.</div>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <div class="w-6 h-6 rounded-full bg-ok-100 text-ok-700 grid place-items-center shrink-0 mt-0.5">
+        <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div class="font-semibold text-ink-800">Retenção definida</div>
+        <div class="text-ink-500">Dados purged automaticamente após o período configurado por tenant.</div>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <div class="w-6 h-6 rounded-full bg-ok-100 text-ok-700 grid place-items-center shrink-0 mt-0.5">
+        <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div class="font-semibold text-ink-800">Segurança de tokens</div>
+        <div class="text-ink-500">Tokens armazenados apenas em hash (bcrypt), nunca em texto claro.</div>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <div class="w-6 h-6 rounded-full bg-ok-100 text-ok-700 grid place-items-center shrink-0 mt-0.5">
+        <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div class="font-semibold text-ink-800">Rastreabilidade</div>
+        <div class="text-ink-500">Todas as alterações manuais são registradas no log de auditoria.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

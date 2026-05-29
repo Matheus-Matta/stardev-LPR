@@ -1,0 +1,156 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Câmeras — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Operação · Câmeras</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Câmeras</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Monitoramento e configuração das câmeras de leitura.</p>
+  </div>
+  <a href="{% url 'lpr:camera-create' %}"
+     class="flex items-center gap-2 h-9 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[12.5px] font-semibold shadow-card">
+    <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Nova câmera
+  </a>
+</div>
+
+{# KPIs — ids para atualização via JS #}
+<div class="grid grid-cols-3 gap-4">
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ink-400 uppercase tracking-wide">Total</div>
+    <div class="text-[28px] font-extrabold text-ink-900 mt-1" id="kpi-cam-total">{{ total }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-ok-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-ok-600 uppercase tracking-wide">Online</div>
+    <div class="text-[28px] font-extrabold text-ok-700 mt-1" id="kpi-cam-online">{{ online }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-err-100 shadow-card px-5 py-4">
+    <div class="text-[11px] font-semibold text-err-600 uppercase tracking-wide">Offline</div>
+    <div class="text-[28px] font-extrabold text-err-700 mt-1" id="kpi-cam-offline">{{ offline }}</div>
+  </div>
+</div>
+
+{# Filtros #}
+<form method="get" class="bg-white rounded-xl border border-ink-100 shadow-card p-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="lg:col-span-2">
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Buscar</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Nome da câmera…"
+             class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Status</label>
+      <select name="status" class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300">
+        <option value="">Todos</option>
+        <option value="online"   {% if q_status == "online"   %}selected{% endif %}>Online</option>
+        <option value="degraded" {% if q_status == "degraded" %}selected{% endif %}>Degradada</option>
+        <option value="offline"  {% if q_status == "offline"  %}selected{% endif %}>Offline</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Modo</label>
+      <select name="mode" class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300">
+        <option value="">Todos</option>
+        {% for val, label in connection_modes %}
+          <option value="{{ val }}" {% if q_mode == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="flex gap-2 mt-3">
+    <button type="submit" class="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold">Filtrar</button>
+    <a href="{% url 'lpr:cameras' %}" class="h-9 px-3 leading-9 rounded-lg border border-ink-200 text-ink-600 text-[13px] hover:bg-ink-50">Limpar</a>
+  </div>
+</form>
+
+{# Tabela #}
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Câmera</th>
+          <th class="text-left font-semibold px-3 py-2.5">Status</th>
+          <th class="text-left font-semibold px-3 py-2.5">Modo</th>
+          <th class="text-left font-semibold px-3 py-2.5">Unidade</th>
+          <th class="text-left font-semibold px-3 py-2.5">Local</th>
+          <th class="text-left font-semibold px-3 py-2.5">Última leitura</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for row in camera_rows %}
+        {# data-camera-id → alvo do polling JS #}
+        <tr class="hover:bg-ink-50/60" data-camera-id="{{ row.obj.id }}">
+
+          {# Nome + chave #}
+          <td class="pl-5 pr-3 py-3">
+            <div class="font-semibold text-ink-800">{{ row.obj.name }}</div>
+            <div class="text-[11px] text-ink-400 font-mono mt-0.5">{{ row.obj.camera_key|default:"—" }}</div>
+          </td>
+
+          {# Status — data-role="status-badge" para troca via JS #}
+          <td class="px-3 py-3">
+            <span data-role="status-badge">
+              {% if row.state == "online" %}
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-ok-50 text-ok-700">
+                  <span class="w-1.5 h-1.5 rounded-full bg-ok-500 pulse-dot"></span> Online
+                </span>
+              {% elif row.state == "degraded" %}
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-warn-50 text-warn-700">
+                  <span class="w-1.5 h-1.5 rounded-full bg-warn-500"></span> Degradada
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-err-50 text-err-700">
+                  <span class="w-1.5 h-1.5 rounded-full bg-err-500"></span> Offline
+                </span>
+              {% endif %}
+            </span>
+          </td>
+
+          <td class="px-3 py-3 text-ink-600">{{ row.mode_display }}</td>
+          <td class="px-3 py-3 text-ink-600">{{ row.obj.tenant.name|default:"—" }}</td>
+          <td class="px-3 py-3 text-ink-600">{{ row.obj.location|default:"—" }}</td>
+
+          {# Última leitura — data-role="last-seen" para atualização via JS #}
+          <td class="px-3 py-3 text-ink-500 tabular-nums" data-role="last-seen">
+            {{ row.last_read_human }}
+          </td>
+
+          {# Ações #}
+          <td class="pr-5 pl-3 py-3 text-right">
+            <div class="inline-flex items-center gap-1">
+              {% if row.obj.connection_mode != "push" %}
+              <a href="{% url 'lpr:camera-live' row.obj.id %}"
+                 title="Ver ao vivo"
+                 data-role="live-btn"
+                 class="inline-flex items-center gap-1 text-[11.5px] font-semibold h-7 px-2 rounded-md transition-colors
+                        {% if row.state == 'online' %}hover:bg-ok-50 text-ok-700{% else %}hover:bg-ink-100 text-ink-500{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5 shrink-0"><path d="M23 7 16 12 23 17V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2" stroke="currentColor" stroke-width="2"/></svg>
+                Live
+              </a>
+              {% endif %}
+              <a href="{% url 'lpr:camera-edit' row.obj.id %}"
+                 class="text-[11.5px] font-semibold h-7 px-2 leading-7 rounded-md hover:bg-ink-100 text-ink-600">
+                Editar
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="px-5 py-16 text-center text-ink-400 text-[13px]">
+            Nenhuma câmera encontrada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

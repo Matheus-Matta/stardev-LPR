@@ -1,0 +1,103 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Auditoria — starLPR{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <div class="text-[12px] text-ink-400 font-medium">Plataforma · Auditoria</div>
+    <h1 class="text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight">Log de Auditoria</h1>
+    <p class="text-[13px] text-ink-500 mt-1">Registro imutável de ações realizadas no sistema.</p>
+  </div>
+</div>
+
+{# Filtros #}
+<form method="get" class="bg-white rounded-xl border border-ink-100 shadow-card p-4">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Ação</label>
+      <input type="text" name="action" value="{{ q_action }}" placeholder="event.correct_plate"
+             class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Usuário</label>
+      <input type="text" name="user" value="{{ q_user }}" placeholder="username"
+             class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+    </div>
+    <div>
+      <label class="block text-[11px] font-semibold text-ink-500 mb-1 uppercase tracking-wide">Entidade</label>
+      <input type="text" name="entity" value="{{ q_entity }}" placeholder="AccessEvent"
+             class="w-full h-9 px-3 rounded-lg border border-ink-200 bg-ink-50 text-[13px] focus:outline-none focus:ring-2 focus:ring-brand-300" />
+    </div>
+  </div>
+  <div class="flex gap-2 mt-3">
+    <button type="submit" class="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[13px] font-semibold">Filtrar</button>
+    <a href="{% url 'lpr:audit' %}" class="h-9 px-3 leading-9 rounded-lg border border-ink-200 text-ink-600 text-[13px] hover:bg-ink-50">Limpar</a>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden">
+  <div class="px-5 py-3 border-b border-ink-100 text-[12.5px] text-ink-500">
+    <span class="font-bold text-ink-900">{{ total_count|intcomma }}</span> registro{{ total_count|pluralize }} encontrado{{ total_count|pluralize }}
+  </div>
+
+  <div class="overflow-x-auto scroll-soft">
+    <table class="w-full text-[12.5px]">
+      <thead class="bg-ink-50/60 text-ink-500 text-[11px] uppercase tracking-wider">
+        <tr>
+          <th class="text-left font-semibold pl-5 pr-3 py-2.5">Ação</th>
+          <th class="text-left font-semibold px-3 py-2.5">Usuário</th>
+          <th class="text-left font-semibold px-3 py-2.5">Entidade</th>
+          <th class="text-left font-semibold px-3 py-2.5">IP</th>
+          <th class="text-left font-semibold px-3 py-2.5">Tenant</th>
+          <th class="text-right font-semibold pr-5 pl-3 py-2.5">Data</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ink-100">
+        {% for log in audit_rows %}
+        <tr class="hover:bg-ink-50/60">
+          <td class="pl-5 pr-3 py-3">
+            <span class="font-mono text-[11.5px] text-ink-700 bg-ink-50 px-2 py-0.5 rounded">{{ log.action }}</span>
+          </td>
+          <td class="px-3 py-3 text-ink-600">{{ log.user.username|default:"Sistema" }}</td>
+          <td class="px-3 py-3">
+            {% if log.entity_type %}
+              <span class="text-[11.5px] text-ink-700">{{ log.entity_type }}</span>
+              {% if log.entity_id %}
+                <span class="text-ink-400"> #{{ log.entity_id }}</span>
+              {% endif %}
+            {% else %}
+              <span class="text-ink-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-ink-400 font-mono text-[11.5px]">{{ log.ip_address|default:"—" }}</td>
+          <td class="px-3 py-3 text-ink-600">{{ log.tenant.name|default:"—" }}</td>
+          <td class="pr-5 pl-3 py-3 text-right text-ink-400 tabular-nums text-[11.5px]">{{ log.created_at|naturaltime }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="px-5 py-16 text-center text-ink-400 text-[13px]">Nenhum registro encontrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100">
+    <div class="text-[11.5px] text-ink-500">Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_count|intcomma }}</div>
+    <div class="flex items-center gap-1">
+      {% if page_obj.has_previous %}
+        <a href="?{% querystring page=page_obj.previous_page_number %}" class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">← Anterior</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a href="?{% querystring page=page_obj.next_page_number %}" class="h-8 px-3 rounded-lg border border-ink-200 text-[12px] text-ink-600 hover:bg-ink-50 leading-8">Próxima →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

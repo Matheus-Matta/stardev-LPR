@@ -1,0 +1,478 @@
+{% extends "app/base.html" %}
+{% load humanize %}
+
+{% block title %}Live · {{ camera.name }} — starLPR{% endblock %}
+
+{% block content %}
+
+{# ── Cabeçalho ─────────────────────────────────────────────────────────────── #}
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div class="min-w-0">
+    <div class="text-[12px] text-ink-400 font-medium">
+      Operação ·
+      <a href="{% url 'lpr:cameras' %}" class="hover:text-brand-600">Câmeras</a>
+      · Live
+    </div>
+    <h1 class="text-[22px] sm:text-[26px] font-extrabold tracking-tight text-ink-900 leading-tight truncate">
+      {{ camera.name }}
+    </h1>
+    <p class="text-[13px] text-ink-500 mt-0.5 hidden sm:block">Visualização ao vivo · detecções de placas em tempo real.</p>
+  </div>
+  <div class="flex items-center gap-2 shrink-0">
+    <a href="{% url 'lpr:camera-edit' camera.pk %}"
+       class="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 text-[12.5px] font-semibold">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5 shrink-0"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="hidden sm:inline">Editar</span>
+    </a>
+    <a href="{% url 'lpr:cameras' %}"
+       class="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-ink-200 hover:bg-ink-50 text-ink-700 text-[12.5px] font-semibold">
+      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5 shrink-0"><path d="M19 12H5M5 12l7-7M5 12l7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="hidden sm:inline">Câmeras</span>
+    </a>
+  </div>
+</div>
+
+{# ── Info cards ─────────────────────────────────────────────────────────────── #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-4 py-3">
+    <div class="text-[10px] font-semibold text-ink-400 uppercase tracking-wide">Status</div>
+    <div class="mt-1.5" id="cam-status-badge">
+      {% if camera_state == "online" %}
+        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-ok-50 text-ok-700">
+          <span class="w-1.5 h-1.5 rounded-full bg-ok-500 pulse-dot"></span>Online
+        </span>
+      {% elif camera_state == "degraded" %}
+        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-warn-50 text-warn-700">
+          <span class="w-1.5 h-1.5 rounded-full bg-warn-500"></span>Degradada
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-err-50 text-err-700">
+          <span class="w-1.5 h-1.5 rounded-full bg-err-500"></span>Offline
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-4 py-3">
+    <div class="text-[10px] font-semibold text-ink-400 uppercase tracking-wide">Modo</div>
+    <div class="text-[13px] font-bold text-ink-800 mt-1.5 truncate">{{ camera.get_connection_mode_display }}</div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-4 py-3">
+    <div class="text-[10px] font-semibold text-ink-400 uppercase tracking-wide">Local</div>
+    <div class="text-[13px] font-bold text-ink-800 mt-1.5 truncate">{{ camera.location|default:"—" }}</div>
+  </div>
+
+  <div class="bg-white rounded-xl border border-ink-100 shadow-card px-4 py-3">
+    <div class="text-[10px] font-semibold text-ink-400 uppercase tracking-wide">Detectadas (sessão)</div>
+    <div class="text-[22px] font-extrabold text-ink-900 mt-0.5 tabular-nums" id="kpi-session-count">—</div>
+  </div>
+
+</div>
+
+{# ── Layout principal: player (esquerda) + painel de detecções (direita) ───── #}
+{# Mobile: stack vertical · lg+: side-by-side fixados em 600 px              #}
+<div class="flex flex-col lg:flex-row gap-4 lg:items-stretch lg:h-[600px]">
+
+  {# ── Player ───────────────────────────────────────────────────────────────── #}
+  <div class="w-full lg:flex-1 min-w-0 min-h-0 bg-white rounded-xl border border-ink-100 shadow-card overflow-hidden flex flex-col">
+
+    {# Toolbar #}
+    <div class="flex items-center justify-between px-4 py-2.5 border-b border-ink-100 shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-err-50 text-err-600 shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full bg-err-500 animate-pulse"></span>
+          Ao Vivo
+        </span>
+        <span class="text-[13px] font-semibold text-ink-700 truncate">{{ camera.name }}</span>
+        <span class="text-[10px] text-ink-400 font-mono hidden sm:inline shrink-0">{{ camera.camera_key }}</span>
+      </div>
+      <div class="flex items-center gap-1 shrink-0 ml-2">
+        <button id="btn-fullscreen" title="Tela cheia"
+                class="h-7 w-7 flex items-center justify-center rounded-md hover:bg-ink-100 text-ink-500 transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="btn-reload" title="Recarregar stream"
+                class="h-7 w-7 flex items-center justify-center rounded-md hover:bg-ink-100 text-ink-500 transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4"><path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    {# Área do vídeo — ocupa todo espaço restante do card (altura fixada pelo pai) #}
+    <div id="player-wrap" class="relative bg-black flex-1 min-h-0">
+      {% if not has_stream %}
+        <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/60">
+          <svg viewBox="0 0 24 24" fill="none" class="w-14 h-14 opacity-40"><path d="M23 7 16 12 23 17V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2" stroke="currentColor" stroke-width="2"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <div class="text-[13px] font-semibold">Stream indisponível</div>
+          <div class="text-[11px] text-center max-w-xs px-4">Câmeras no modo <strong>Push HTTP</strong> enviam frames individualmente e não possuem stream HLS/RTSP.</div>
+        </div>
+      {% else %}
+        {# Loading #}
+        <div id="loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/70 z-10">
+          <div class="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+          <div class="text-[13px] font-semibold">Conectando ao stream…</div>
+          <div class="text-[11px] text-white/50 font-mono text-center px-4 break-all">{{ hls_url }}</div>
+        </div>
+        {# Erro / fallback de último frame #}
+        <div id="error-overlay" class="absolute inset-0 flex-col items-center justify-center z-10" style="display:none">
+          {% if last_frame_url %}
+          {# Mostra o último frame capturado como wallpaper #}
+          <img id="last-frame-img"
+               src="{{ last_frame_url }}"
+               class="absolute inset-0 w-full h-full object-cover opacity-60"
+               alt="Último frame capturado">
+          {% endif %}
+          <div class="relative z-10 flex flex-col items-center gap-3 text-white/80 px-4 text-center">
+            <svg viewBox="0 0 24 24" fill="none" class="w-10 h-10 opacity-60"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <div class="text-[13px] font-semibold drop-shadow">Stream indispon\xedvel</div>
+            <div id="error-msg" class="text-[11px] text-white/70 max-w-xs drop-shadow"></div>
+            <button id="btn-retry" class="h-8 px-4 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[12px] font-semibold transition-colors backdrop-blur-sm">
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+        <video id="live-video" class="w-full h-full object-contain" autoplay muted playsinline></video>
+      {% endif %}
+    </div>
+
+    {% if has_stream %}
+    <div class="px-4 py-2 bg-ink-50/50 border-t border-ink-100 flex items-center justify-between gap-3 shrink-0">
+      <div class="text-[10px] text-ink-500 truncate">
+        <span class="font-semibold text-ink-700">HLS:</span>
+        <span class="font-mono">{{ hls_url }}</span>
+      </div>
+      <span id="stream-quality" class="text-[10px] text-ink-400 shrink-0 hidden">—</span>
+    </div>
+    {% endif %}
+  </div>{# /player #}
+
+  {# ── Painel de detecções ───────────────────────────────────────────────── #}
+  {# Mobile: lista limitada a 45vh · lg+: mesma altura do player via items-stretch #}
+  <div class="w-full lg:w-[340px] xl:w-[390px] shrink-0 min-h-0 bg-white rounded-xl border border-ink-100 shadow-card flex flex-col overflow-hidden">
+
+    {# Cabeçalho do painel #}
+    <div class="px-4 py-3 border-b border-ink-100 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <span class="text-[13px] font-bold text-ink-900">Detecções</span>
+        <span class="w-2 h-2 rounded-full bg-ok-500 pulse-dot shrink-0"></span>
+      </div>
+      <span id="det-session-label" class="text-[11px] text-ink-400 tabular-nums">Aguardando…</span>
+    </div>
+
+    {# Lista de eventos — scrollável dentro do espaço disponível #}
+    <div id="det-list"
+         class="flex-1 min-h-0 overflow-y-auto divide-y divide-ink-50
+                max-h-[45vh] lg:max-h-none">
+      <div class="flex flex-col items-center justify-center py-12 gap-2" data-empty>
+        <svg viewBox="0 0 24 24" fill="none" class="w-8 h-8 text-ink-200">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div class="text-[12px] text-ink-400 animate-pulse">Aguardando detecções…</div>
+        <div class="text-[11px] text-ink-300">Atualiza a cada 3 s</div>
+      </div>
+    </div>
+
+    {# Rodapé #}
+    <div class="px-4 py-2.5 border-t border-ink-100 flex items-center justify-between shrink-0">
+      <span class="text-[11px] text-ink-400">Polling 3 s</span>
+      <a href="{% url 'lpr:events' %}?camera={{ camera.pk }}"
+         class="text-[11px] text-brand-700 hover:underline font-semibold">
+        Ver histórico →
+      </a>
+    </div>
+  </div>{# /painel #}
+
+</div>{# /main layout #}
+
+{# ── CSS: estilo especial da primeira detecção (mais recente) ─────────────── #}
+<style>
+  /* Primeira placa da lista = mais recente: destaque visual sem duplicar */
+  #det-list > a.ev-card:first-child {
+    background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+  }
+  #det-list > a.ev-card:first-child .plate-text {
+    font-size: 1.15rem;
+  }
+  #det-list > a.ev-card:first-child .plate-thumb {
+    width:  4.5rem;
+    height: 2.75rem;
+  }
+  #det-list > a.ev-card:first-child .conf-bar-wrap {
+    height: 5px;
+  }
+  /* Esconde scrollbar no WebKit mas mantém funcionalidade */
+  #det-list::-webkit-scrollbar { width: 4px; }
+  #det-list::-webkit-scrollbar-track { background: transparent; }
+  #det-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+  #det-list::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+</style>
+
+{# ── Scripts ─────────────────────────────────────────────────────────────── #}
+{% if has_stream %}
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5/dist/hls.min.js"></script>
+{% endif %}
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Paletas ─────────────────────────────────────────────────────────────── */
+  var DECISION = {
+    allowed:       { label: 'Autorizado',   text: 'text-ok-700',   border: '#22c55e', toast: 'ok'   },
+    blocked:       { label: 'Bloqueado',    text: 'text-err-700',  border: '#ef4444', toast: 'err'  },
+    unknown:       { label: 'Desconhecido', text: 'text-warn-700', border: '#f59e0b', toast: 'warn' },
+    manual_review: { label: 'Revisão',      text: 'text-warn-700', border: '#f59e0b', toast: 'warn' }
+  };
+  var DEC_DEFAULT = { label: 'Indefinido', text: 'text-ink-500', border: '#94a3b8', toast: 'warn' };
+
+  var LIST_BADGE  = { whitelist: 'bg-ok-100 text-ok-700', blacklist: 'bg-err-100 text-err-700', unknown: 'bg-warn-100 text-warn-700' };
+  var LIST_LABEL  = { whitelist: 'Whitelist', blacklist: 'Blacklist', unknown: 'Desconhecida' };
+
+  /* ── Ícone SVG de placa (sem template literal — string simples) ───────────── */
+  var PLATE_ICON =
+    '<div class="plate-thumb w-16 h-10 rounded-md shrink-0 border border-ink-100 bg-ink-50 flex items-center justify-center">' +
+    '<svg viewBox="0 0 24 24" fill="none" class="w-5 h-5 text-ink-300">' +
+    '<rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>' +
+    '<path d="M7 10h10M7 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '</svg></div>';
+
+  /* ── Estado vazio ────────────────────────────────────────────────────────── */
+  var EMPTY_HTML =
+    '<div class="flex flex-col items-center justify-center py-10 gap-2 text-center" data-empty>' +
+    '<svg viewBox="0 0 24 24" fill="none" class="w-8 h-8 text-ink-200">' +
+    '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>' +
+    '<path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '</svg><div class="text-[12px] text-ink-400 mt-1">Nenhuma detecção recente</div></div>';
+
+  /* ── Helper: escape de HTML para valores do servidor ─────────────────────── */
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /* ── Monta card de detecção (concatenação pura — sem template literal) ────── */
+  function buildCard(ev) {
+    var d   = DECISION[ev.decision] || DEC_DEFAULT;
+    var lbl = LIST_LABEL[ev.list_type]  || 'Desconhecida';
+    var lcl = LIST_BADGE[ev.list_type]  || LIST_BADGE.unknown;
+    var pct = ev.confidence;
+    var bar = pct >= 90 ? '#22c55e' : pct >= 70 ? '#f59e0b' : '#ef4444';
+
+    /* Thumbnail: img com fallback silencioso, ou ícone placeholder */
+    var thumb = ev.crop_url
+      ? '<img src="' + esc(ev.crop_url) + '"' +
+        ' class="plate-thumb w-16 h-10 object-cover rounded-md shrink-0 border border-ink-100"' +
+        ' loading="lazy" onerror="this.style.display=\'none\'">'
+      : PLATE_ICON;
+
+    return (
+      '<a href="' + esc(ev.event_url) + '"' +
+        ' class="ev-card flex items-center gap-3 px-4 py-3 hover:bg-ink-50 transition-colors"' +
+        ' style="border-left:3px solid ' + d.border + '">' +
+        thumb +
+        '<div class="flex-1 min-w-0">' +
+          '<div class="flex items-start justify-between gap-2">' +
+            '<span class="plate-text text-[15px] font-extrabold tracking-widest text-ink-900 leading-tight truncate">' +
+              esc(ev.plate) +
+            '</span>' +
+            '<span class="text-[10px] text-ink-400 tabular-nums shrink-0 mt-0.5">' + esc(ev.ago) + '</span>' +
+          '</div>' +
+          '<div class="flex items-center gap-1.5 mt-1 flex-wrap">' +
+            '<span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded-full ' + lcl + '">' + lbl + '</span>' +
+            '<span class="text-[9.5px] font-semibold ' + d.text + '">' + d.label + '</span>' +
+          '</div>' +
+          '<div class="flex items-center gap-1.5 mt-1.5">' +
+            '<div class="conf-bar-wrap flex-1 h-1 rounded-full bg-ink-100 overflow-hidden">' +
+              '<div class="h-full rounded-full" style="width:' + pct + '%;background:' + bar + '"></div>' +
+            '</div>' +
+            '<span class="text-[9.5px] text-ink-500 tabular-nums shrink-0">' + pct + '%</span>' +
+          '</div>' +
+        '</div>' +
+      '</a>'
+    );
+  }
+
+  /* ── Polling ─────────────────────────────────────────────────────────────── */
+  var POLL_URL  = '{% url "lpr:api-camera-events" camera.pk %}';
+  var detList   = document.getElementById('det-list');
+  var detLabel  = document.getElementById('det-session-label');
+  var kpiCount  = document.getElementById('kpi-session-count');
+
+  var sinceId   = 0;
+  var totalSess = 0;
+  var firstLoad = true;
+  var fetching  = false;
+
+  function pollDetections() {
+    if (fetching) return;
+    fetching = true;
+
+    fetch(POLL_URL + '?since_id=' + sinceId)
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+
+        /* Sem eventos novos */
+        if (!data.events || data.events.length === 0) {
+          if (firstLoad) { firstLoad = false; detList.innerHTML = EMPTY_HTML; }
+          return;
+        }
+
+        sinceId = data.max_id;
+
+        if (firstLoad) {
+          /* Primeira carga: exibe tudo sem toasts */
+          firstLoad = false;
+          totalSess = data.count;
+          detList.innerHTML = data.events.map(buildCard).join('');
+        } else {
+          /* Novas detecções: prepend + toasts */
+          totalSess += data.events.length;
+
+          var emptyEl = detList.querySelector('[data-empty]');
+          if (emptyEl) emptyEl.remove();
+
+          var frag = document.createElement('div');
+          frag.innerHTML = data.events.map(buildCard).join('');
+          while (frag.firstChild) {
+            detList.insertBefore(frag.firstChild, detList.firstChild);
+          }
+
+          /* Limita a 20 cards — remove o mais antigo (último) quando excede */
+          var cards = detList.querySelectorAll('a.ev-card');
+          while (cards.length > 20) {
+            cards[cards.length - 1].remove();
+            cards = detList.querySelectorAll('a.ev-card');
+          }
+
+          /* Toasts + atualiza último frame no overlay de erro */
+          data.events.forEach(function (ev) {
+            var d = DECISION[ev.decision] || DEC_DEFAULT;
+            if (window.lprToast) window.lprToast(ev.plate + ' \xb7 ' + d.label, d.toast, 4500);
+            var lastImg = document.getElementById('last-frame-img');
+            if (lastImg && (ev.crop_url || ev.image_url)) {
+              lastImg.src = ev.crop_url || ev.image_url;
+              lastImg.style.display = '';
+            }
+          });
+        }
+
+        if (kpiCount) kpiCount.textContent = totalSess;
+        if (detLabel) detLabel.textContent  = totalSess + ' detectada' + (totalSess !== 1 ? 's' : '');
+      })
+      .catch(function () { /* rede indisponível */ })
+      .finally(function () { fetching = false; });
+  }
+
+  pollDetections();
+  setInterval(pollDetections, 3000);
+
+
+  {% if has_stream %}
+  /* ── Player HLS.js ───────────────────────────────────────────────────────── */
+  (function () {
+    var hlsUrl       = '{{ hls_url|escapejs }}';
+    var video        = document.getElementById('live-video');
+    var loading      = document.getElementById('loading-overlay');
+    var errOverlay   = document.getElementById('error-overlay');
+    var errMsg       = document.getElementById('error-msg');
+    var quality      = document.getElementById('stream-quality');
+    var lastFrameImg = document.getElementById('last-frame-img');
+    var hls          = null;
+
+    function showError(msg) {
+      if (loading)    loading.style.display    = 'none';
+      if (errOverlay) errOverlay.style.display = 'flex';
+      if (errMsg)     errMsg.textContent = msg || 'Verifique se o servidor de m\xeddia est\xe1 ativo.';
+    }
+    function hideLoading() {
+      if (loading)    loading.style.display    = 'none';
+      if (errOverlay) errOverlay.style.display = 'none';
+    }
+    function updateLastFrame(url) {
+      if (!url || !lastFrameImg) return;
+      lastFrameImg.src = url;
+      lastFrameImg.style.display = '';
+    }
+
+    function initPlayer() {
+      if (hls) { hls.destroy(); hls = null; }
+      video.src = '';
+      if (loading)    loading.style.display    = 'flex';
+      if (errOverlay) errOverlay.style.display = 'none';
+
+      if (Hls.isSupported()) {
+        hls = new Hls({
+          enableWorker:                true,
+          lowLatencyMode:              true,
+          liveSyncDurationCount:       2,
+          liveMaxLatencyDurationCount: 5,
+          manifestLoadingTimeOut:      10000,
+          manifestLoadingMaxRetry:     3,
+          levelLoadingTimeOut:         10000
+        });
+        hls.loadSource(hlsUrl);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          hideLoading();
+          video.play().catch(function () {});
+        });
+
+        hls.on(Hls.Events.LEVEL_UPDATED, function () {
+          if (!quality) return;
+          var lvl = hls.levels[hls.currentLevel];
+          if (lvl) {
+            quality.textContent = lvl.width + '\xd7' + lvl.height + ' @ ' + Math.round(lvl.bitrate / 1000) + ' kbps';
+            quality.classList.remove('hidden');
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, function (e, data) {
+          if (!data.fatal) return;
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            showError('Erro de rede — servidor de m\xeddia pode estar offline.');
+          } else {
+            showError('Erro ao reproduzir o stream.');
+          }
+        });
+
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = hlsUrl;
+        video.addEventListener('loadedmetadata', function () { hideLoading(); video.play().catch(function () {}); });
+        video.addEventListener('error', function () { showError('Erro ao carregar stream.'); });
+      } else {
+        showError('Seu navegador n\xe3o suporta reprodu\xe7\xe3o HLS.');
+      }
+    }
+
+    var btnReload = document.getElementById('btn-reload');
+    var btnRetry  = document.getElementById('btn-retry');
+    if (btnReload) btnReload.addEventListener('click', initPlayer);
+    if (btnRetry)  btnRetry.addEventListener('click',  initPlayer);
+
+    var btnFs = document.getElementById('btn-fullscreen');
+    var wrap  = document.getElementById('player-wrap');
+    if (btnFs && wrap) {
+      btnFs.addEventListener('click', function () {
+        if (!document.fullscreenElement) { if (wrap.requestFullscreen) wrap.requestFullscreen(); }
+        else { if (document.exitFullscreen) document.exitFullscreen(); }
+      });
+    }
+
+    initPlayer();
+  }());
+  {% endif %}
+
+}());
+</script>
+
+{% endblock %}
